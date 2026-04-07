@@ -1,0 +1,8 @@
+../Core/bn008x/test/bn008x_hal_mock.c:12:6:bn008x_hal_mock_reset	1
+../Core/bn008x/test/bn008x_hal_mock.c:21:16:bn008x_hal_mock_get_transmitted	1
+../Core/bn008x/test/bn008x_hal_mock.c:27:6:bn008x_hal_mock_set_received	1
+../Core/bn008x/test/bn008x_hal_mock.c:33:16:mock_i2c_write	1
+../Core/bn008x/test/bn008x_hal_mock.c:41:16:mock_i2c_read	1
+../Core/bn008x/test/bn008x_hal_mock.c:48:13:mock_delay_ms	1
+../Core/bn008x/test/bn008x_hal_mock.c:53:17:mock_get_tick_ms	1
+../Core/bn008x/test/bn008x_hal_mock.c:58:6:bn008x_hal_init_mock	1

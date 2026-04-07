@@ -1,0 +1,6 @@
+../Core/bn008x/src/bn008x.c:4:24:send_shtp_packet	88	dynamic
+../Core/bn008x/src/bn008x.c:47:24:read_response	72	dynamic
+../Core/bn008x/src/bn008x.c:94:24:send_simple_command	24	static
+../Core/bn008x/src/bn008x.c:99:24:send_command_request	64	dynamic
+../Core/bn008x/src/bn008x.c:113:17:bn008x_init	64	static
+../Core/bn008x/src/bn008x.c:162:17:bn008x_reset	64	static

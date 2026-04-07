@@ -1,0 +1,5 @@
+../Core/bn008x/bn008x_port.c:8:16:stm32_i2c_write	40	static
+../Core/bn008x/bn008x_port.c:17:16:stm32_i2c_read	40	static
+../Core/bn008x/bn008x_port.c:25:13:stm32_delay_ms	16	static
+../Core/bn008x/bn008x_port.c:29:17:stm32_get_tick_ms	8	static
+../Core/bn008x/bn008x_port.c:35:6:bn008x_hal_init_stm32	16	static

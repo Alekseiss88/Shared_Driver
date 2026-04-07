@@ -1,0 +1,4 @@
+../Core/Src/freertos.c:72:6:vApplicationIdleHook	1
+../Core/Src/freertos.c:87:6:vApplicationTickHook	1
+../Core/Src/freertos.c:102:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:144:6:StartDefaultTask	1
