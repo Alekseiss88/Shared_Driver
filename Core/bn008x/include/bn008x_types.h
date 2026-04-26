@@ -13,6 +13,15 @@ typedef enum {
     BN008X_ERROR_SPI
 } bn008x_status_t;
 
+//Номера пинов
+typedef enum {
+	BN008X_RESET_PIN = 0,
+    BN008X_WAKE_PIN,
+    BN008X_INT_PIN,
+	BN008X_PS1_PIN,
+	BN008X_CS_PIN
+} bn008x_gpio_pin_t;
+
 // Режимы работы
 typedef enum {
     BN008X_MODE_SLEEP = 0,

@@ -110,6 +110,34 @@ static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
     return send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, data, sizeof(data));
 }
 
+/*static HAL_StatusTypeDef BNO08X_Wake(void)
+{
+  uint32_t start_ms;
+
+  if (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_RESET)
+  {
+    g_bno08x_int_pending = 1U;
+    return HAL_OK;
+  }
+
+  HAL_GPIO_WritePin(BNO08X_PS0_WAKE_GPIO_Port, BNO08X_PS0_WAKE_Pin, GPIO_PIN_RESET);
+  HAL_Delay(BNO08X_WAKE_ASSERT_MS);
+  HAL_GPIO_WritePin(BNO08X_PS0_WAKE_GPIO_Port, BNO08X_PS0_WAKE_Pin, GPIO_PIN_SET);
+
+  start_ms = HAL_GetTick();
+  while (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_SET)
+  {
+    if ((HAL_GetTick() - start_ms) > BNO08X_WAKE_TIMEOUT_MS)
+    {
+      g_bno08x_diag.wake_timeouts++;
+      return HAL_TIMEOUT;
+    }
+  }
+
+  g_bno08x_int_pending = 1U;
+  return HAL_OK;
+}
+*/
 bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, uint8_t dev_addr) {
     if (!dev || !hal) {
         return BN008X_ERROR_INVALID_PARAM;
@@ -121,7 +149,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, uint8_t dev_
     dev->mutex = NULL;
     dev->sem_data_ready = NULL;
     dev->initialized = 0;
-    
+
     // Очищаем кэш
     memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));
     memset(&dev->cache, 0, sizeof(dev->cache));

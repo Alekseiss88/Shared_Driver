@@ -10,6 +10,9 @@ typedef struct {
     
     void (*cs_select)(uint8_t select);
     
+    void (*gpio_write)(uint8_t pin, uint8_t state);
+    uint8_t (*gpio_read)(uint8_t pin);
+
     // Задержка в мс
     void (*delay_ms)(uint32_t ms);
     

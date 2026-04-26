@@ -1,5 +1,5 @@
 Core/bn008x/src/bn008x_port.o: ../Core/bn008x/src/bn008x_port.c \
- /home/ubuntu/Downloads/BN008X_Driver_STM32-main/Core/bn008x/include/bn008x_port.h \
+ C:/Users/lehas/OneDrive/Документы/Стартап/BN008X_Driver_STM32-main/Core/bn008x/include/bn008x_port.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -31,8 +31,11 @@ Core/bn008x/src/bn008x_port.o: ../Core/bn008x/src/bn008x_port.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h \
  ../Core/Inc/spi.h ../Core/Inc/main.h ../Core/Inc/gpio.h
-/home/ubuntu/Downloads/BN008X_Driver_STM32-main/Core/bn008x/include/bn008x_port.h:
+C:/Users/lehas/OneDrive/Документы/Стартап/BN008X_Driver_STM32-main/Core/bn008x/include/bn008x_port.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:
@@ -64,6 +67,9 @@ Core/bn008x/src/bn008x_port.o: ../Core/bn008x/src/bn008x_port.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pcd_ex.h:
 ../Core/Inc/spi.h:
 ../Core/Inc/main.h:
 ../Core/Inc/gpio.h:

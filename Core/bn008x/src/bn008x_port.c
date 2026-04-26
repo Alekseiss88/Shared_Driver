@@ -3,6 +3,14 @@
 #include "spi.h"
 #include "gpio.h"
 
+//Порты и пины, определяются пользователем
+#define PS0_WAKE_PORT   GPIOB
+#define PS0_WAKE_PIN    GPIO_PIN_13
+#define INT_PORT        GPIOB
+#define INT_PIN         GPIO_PIN_14
+#define CS_PORT         GPIOB
+#define CS_PIN          GPIO_PIN_12
+
 // ===== Реализация функций =====
 
 static int32_t stm32_spi_transfer(uint8_t *tx_data, uint8_t *rx_data, uint16_t len, uint32_t timeout) {
@@ -17,7 +25,6 @@ static void stm32_cs_select(uint8_t select) {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
     }
 }
-
 
 static void stm32_delay_ms(uint32_t ms) {
     HAL_Delay(ms);
