@@ -33,9 +33,9 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
     }*/
     
     // Отправляем по SPI
-    dev->hal->cs_select(1);
-    uint32_t result = dev->hal->spi_transfer(tx_buffer, rx_buffer, total_len, BN008X_SPI_TIMEOUT_MS);
-    dev->hal->cs_select(0);
+    dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
+    uint32_t result = dev->hal->spi_transfer(dev->spi, tx_buffer, rx_buffer, total_len, BN008X_SPI_TIMEOUT_MS);
+    dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
     // Отдаём мьютекс
     /*if (dev->i2c_mutex) {
         xSemaphoreGive(dev->i2c_mutex);
@@ -53,9 +53,9 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     }*/
     
     // Читаем заголовок shtp
-    dev->hal->cs_select(1);
-    int32_t result = dev->hal->spi_transfer(mock, header, 4, BN008X_SPI_TIMEOUT_MS);
-    dev->hal->cs_select(0);
+    dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
+    int32_t result = dev->hal->spi_transfer(dev->spi, mock, header, 4, BN008X_SPI_TIMEOUT_MS);
+    dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
     /*if (result != 0) {
         if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
         return BN008X_ERROR_I2C;
@@ -76,7 +76,7 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     if (packet_len > 4) {
     	uint8_t mock[packet_len-4];
     	memset(mock, 0xFF, packet_len-4);
-        result = dev->hal->spi_transfer(mock, &buffer[4], packet_len - 4, BN008X_SPI_TIMEOUT_MS);
+        result = dev->hal->spi_transfer(dev->spi, mock, &buffer[4], packet_len - 4, BN008X_SPI_TIMEOUT_MS);
         if (result != 0) {
             //if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
             return BN008X_ERROR_SPI;
@@ -138,18 +138,22 @@ static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
   return HAL_OK;
 }
 */
-bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, uint8_t dev_addr) {
+bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTypeDef* spi, uint8_t num_wake, uint8_t num_int, uint8_t num_cs, uint8_t num_ps1, uint8_t num_reset) {
     if (!dev || !hal) {
         return BN008X_ERROR_INVALID_PARAM;
     }
 
     // Сохраняем данные в структуре
     dev->hal = hal;
-    dev->dev_addr = dev_addr;
     dev->mutex = NULL;
     dev->sem_data_ready = NULL;
     dev->initialized = 0;
-
+    dev->im_ports[BN008X_WAKE_PIN]=num_wake;
+    dev->im_ports[BN008X_INT_PIN]=num_int;
+    dev->im_ports[BN008X_CS_PIN]=num_cs;
+    dev->im_ports[BN008X_PS1_PIN]=num_ps1;
+    dev->im_ports[BN008X_RESET_PIN]=num_reset;
+    dev->spi=spi;
     // Очищаем кэш
     memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));
     memset(&dev->cache, 0, sizeof(dev->cache));

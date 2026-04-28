@@ -110,7 +110,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   BNO08X_SetProtocolSPI();
   HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_RESET);
-  HAL_Delay(20);
+  HAL_Delay(100);
   HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_SET);
   HAL_Delay(100);
   if (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_SET)
@@ -121,7 +121,7 @@ int main(void)
     }
   HAL_Delay(100);
   bn008x_hal_init_stm32(&hal);
-  var = bn008x_init(&bn, &hal, BN008X_I2C_ADDR);
+  var = bn008x_init(&bn, &hal, &hspi2, 1, 3, 4, 0, 2);
   /* USER CODE END 2 */
 
   /* Init scheduler */

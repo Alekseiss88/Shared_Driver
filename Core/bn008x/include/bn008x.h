@@ -12,7 +12,8 @@ extern "C" {
 // Структура драйвера
 typedef struct {
     const bn008x_hal_t *hal;      // HAL-функции
-    uint8_t dev_addr;              // I2C адрес
+    uint8_t im_ports[5];			//Таблица соотвествия портов датчика и портов в файле port.c
+    void *spi;						//spi
     void *mutex;                    // Мьютекс для I2C
     void *sem_data_ready;           // Семафор для прерываний
     uint8_t initialized;            // Флаг инициализации
@@ -28,7 +29,7 @@ typedef struct {
 } bn008x_t;
 
 // Начальные функции
-bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, uint8_t dev_addr);
+bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTypeDef* spi, uint8_t num_wake, uint8_t num_int, uint8_t num_cs, uint8_t num_ps1, uint8_t num_reset);
 bn008x_status_t bn008x_reset(bn008x_t *dev);
 
 // Настройки

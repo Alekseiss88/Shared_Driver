@@ -3,4 +3,4 @@
 ../Core/bn008x/src/bn008x.c:94:24:send_simple_command	1
 ../Core/bn008x/src/bn008x.c:99:24:send_command_request	2
 ../Core/bn008x/src/bn008x.c:141:17:bn008x_init	7
-../Core/bn008x/src/bn008x.c:190:17:bn008x_reset	5
+../Core/bn008x/src/bn008x.c:194:17:bn008x_reset	5
