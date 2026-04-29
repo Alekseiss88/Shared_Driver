@@ -1,4 +1,5 @@
 #include "bn008x_port.h"
+#include "stm32f4xx_hal.h"
 
 //здесь в таблицах указывается соответствие между реальным портом и пином и абстрактным, заданный пользователем
 static const uint8_t pin_map[] = {PS1_Pin, WAKE_Pin, RESET_Pin, INT_Pin, CS_PIN_Pin};

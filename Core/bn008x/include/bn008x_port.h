@@ -2,7 +2,6 @@
 #define BN008X_PORT_H
 
 #include <stdint.h>
-#include "stm32f4xx_hal.h"
 #include "spi.h"
 #include "gpio.h"
 // HAL-функции, которые должен предоставить пользователь

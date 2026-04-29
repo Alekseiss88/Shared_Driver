@@ -31,6 +31,7 @@ typedef struct {
 // Начальные функции
 bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTypeDef* spi, uint8_t num_wake, uint8_t num_int, uint8_t num_cs, uint8_t num_ps1, uint8_t num_reset);
 bn008x_status_t bn008x_reset(bn008x_t *dev);
+bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev);
 
 // Настройки
 bn008x_status_t bn008x_set_sample_rate(bn008x_t *dev, uint16_t rate_hz);

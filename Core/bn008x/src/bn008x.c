@@ -110,34 +110,30 @@ static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
     return send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, data, sizeof(data));
 }
 
-/*static HAL_StatusTypeDef BNO08X_Wake(void)
+static bn008x_status_t BNO08X_Wake(bn008x_t *dev)
 {
   uint32_t start_ms;
 
-  if (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_RESET)
+  if (gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_RESET)
   {
-    g_bno08x_int_pending = 1U;
-    return HAL_OK;
+    return BN008X_OK;
   }
 
-  HAL_GPIO_WritePin(BNO08X_PS0_WAKE_GPIO_Port, BNO08X_PS0_WAKE_Pin, GPIO_PIN_RESET);
-  HAL_Delay(BNO08X_WAKE_ASSERT_MS);
-  HAL_GPIO_WritePin(BNO08X_PS0_WAKE_GPIO_Port, BNO08X_PS0_WAKE_Pin, GPIO_PIN_SET);
+  gpio_write(dev->im_ports[BN008X_WAKE_PIN], 0);
+  dev->hal->delay_ms(BN008X_RESET_DELAY_MS);
+  gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
 
-  start_ms = HAL_GetTick();
-  while (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_SET)
+  start_ms = dev->hal->get_tick_ms();
+  while (gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET)
   {
-    if ((HAL_GetTick() - start_ms) > BNO08X_WAKE_TIMEOUT_MS)
+    if ((dev->hal->get_tick_ms() - start_ms) > BN008X_RESET_DELAY_MS)
     {
-      g_bno08x_diag.wake_timeouts++;
-      return HAL_TIMEOUT;
+      return BN008X_ERROR_TIMEOUT;
     }
   }
-
-  g_bno08x_int_pending = 1U;
-  return HAL_OK;
+  return BN008X_OK;
 }
-*/
+
 bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTypeDef* spi, uint8_t num_wake, uint8_t num_int, uint8_t num_cs, uint8_t num_ps1, uint8_t num_reset) {
     if (!dev || !hal) {
         return BN008X_ERROR_INVALID_PARAM;
@@ -189,6 +185,16 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     // Сброс и инициализация
     dev->initialized = 1;
     return bn008x_reset(dev);
+}
+
+bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev)
+{
+	if(!dev || !dev->hal){
+		return BN008X_ERROR_INVALID_PARAM;
+	}
+	dev->hal->gpio_write(dev->im_ports[BN008X_PS1_PIN], 1);
+	dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
+	return BN008X_OK;
 }
 
 bn008x_status_t bn008x_reset(bn008x_t *dev) {

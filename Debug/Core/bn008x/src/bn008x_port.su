@@ -1,6 +1,6 @@
-../Core/bn008x/src/bn008x_port.c:9:16:stm32_spi_transfer	40	static
-../Core/bn008x/src/bn008x_port.c:14:13:stm32_gpio_write	16	static
-../Core/bn008x/src/bn008x_port.c:18:16:stm32_gpio_read	16	static
-../Core/bn008x/src/bn008x_port.c:22:13:stm32_delay_ms	16	static
-../Core/bn008x/src/bn008x_port.c:26:17:stm32_get_tick_ms	8	static
-../Core/bn008x/src/bn008x_port.c:32:6:bn008x_hal_init_stm32	16	static
+../Core/bn008x/src/bn008x_port.c:10:16:stm32_spi_transfer	40	static
+../Core/bn008x/src/bn008x_port.c:15:13:stm32_gpio_write	16	static
+../Core/bn008x/src/bn008x_port.c:19:16:stm32_gpio_read	16	static
+../Core/bn008x/src/bn008x_port.c:23:13:stm32_delay_ms	16	static
+../Core/bn008x/src/bn008x_port.c:27:17:stm32_get_tick_ms	8	static
+../Core/bn008x/src/bn008x_port.c:33:6:bn008x_hal_init_stm32	16	static
