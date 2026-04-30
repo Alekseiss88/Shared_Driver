@@ -2,7 +2,7 @@
 ../Core/bn008x/src/bn008x.c:46:24:read_response	4
 ../Core/bn008x/src/bn008x.c:89:24:send_simple_command	1
 ../Core/bn008x/src/bn008x.c:108:24:bn008x_Wake	4
-../Core/bn008x/src/bn008x.c:132:17:bn008x_init	7
-../Core/bn008x/src/bn008x.c:186:17:bn008x_SetProtocolSPI	3
-../Core/bn008x/src/bn008x.c:196:17:bn008x_reset	3
-../Core/bn008x/src/bn008x.c:238:17:bn008x_hardreset	5
+../Core/bn008x/src/bn008x.c:132:17:bn008x_init	19
+../Core/bn008x/src/bn008x.c:214:17:bn008x_SetProtocolSPI	3
+../Core/bn008x/src/bn008x.c:224:17:bn008x_reset	3
+../Core/bn008x/src/bn008x.c:266:17:bn008x_hardreset	5

@@ -150,37 +150,65 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     memset(&dev->cache, 0, sizeof(dev->cache));
     
     bn008x_status_t status;
-    uint8_t buffer[32];
+    uint8_t buffer[BN008X_MAX_PACKET_SIZE];
     uint16_t len;
-    bn008x_SetProtocolSPI(dev);
-    bn008x_Wake(dev);
+    status = bn008x_hardreset(dev);
+    if(status!=BN008X_OK){
+    	return status;
+    }
+    status = bn008x_reset(dev);
+    if(status!=BN008X_OK){
+    	return status;
+    }
+    status = bn008x_Wake(dev);
+    if(status!=BN008X_OK){
+    	return status;
+    }
     // Пробуем прочитать IDRequest
     status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
     if (status != BN008X_OK) {
         return status;
     }
     
-    // Ждём немного
-    dev->hal->delay_ms(10);
-    
     // Читаем ответ
-    status = read_response(dev, buffer, &len);
-    if (status != BN008X_OK) {
-        return status;
+    uint32_t ms = dev->hal->get_tick_ms();
+    while(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET){
+    	if(dev->hal->get_tick_ms()-ms>BN008X_SPI_TIMEOUT_MS){
+    		return BN008X_ERROR_TIMEOUT;
+    	}
     }
-    
-    // Проверяем, что это правильный ответ
-    uint8_t channel = buffer[2];
-    uint8_t report_id = buffer[4];
-    printf("%i check\n", channel);
-    printf("%i check\n", report_id);
-    if (channel != BN008X_CHANNEL_CONTROL || report_id != BN008X_RID_PRODUCT_ID_RESPONSE) {
-        return BN008X_ERROR;  
+    uint8_t drain_count=0;
+    uint8_t ready=1;
+    for(int i=0; i<3; i++){
+    	if(ready==1 || dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
+    		ready=0;
+			while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS)
+				  {
+					bn008x_status_t read_status = read_response(dev, buffer, &len);
+					if(read_status == BN008X_OK){
+						if(len>0){
+							uint8_t channel = buffer[2];
+							uint8_t report_id = buffer[4];
+							if (channel == BN008X_CHANNEL_CONTROL || report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
+									return BN008X_OK;
+							}
+						}
+					}
+					drain_count++;
+					if(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
+						break;
+					}
+				  }
+    	}
+    	if(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
+    		ready=1;
+    	}
+    	dev->hal->delay_ms(1);
     }
     
     // Сброс и инициализация
     dev->initialized = 1;
-    return bn008x_reset(dev);
+    return BN008X_OK;
 }
 
 bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev)

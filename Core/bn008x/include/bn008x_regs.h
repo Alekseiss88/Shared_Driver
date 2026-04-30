@@ -61,6 +61,7 @@
 #define BN008X_SPI_TIMEOUT_MS           10     /**< Таймаут I2C по умолчанию (мс) */
 #define BN008X_MAX_SENSORS              50      /**< Максимальное количество сенсоров */
 #define BN008X_DEFAULT_SAMPLE_RATE_HZ   100     /**< Частота опроса по умолчанию (Гц) */
+#define BNO08X_RX_DRAIN_MAX_PACKETS     8
 
 #define BN008X_EXEC_CMD_RESET           0x01
 #endif

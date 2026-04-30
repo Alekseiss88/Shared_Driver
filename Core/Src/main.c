@@ -104,19 +104,9 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
+  HAL_Delay(10);
   bn008x_hal_init_stm32(&hal);
   var = bn008x_init(&bn, &hal, &hspi2, 1, 3, 4, 0, 2);
-  HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_RESET);
-  HAL_Delay(100);
-  HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_SET);
-  HAL_Delay(100);
-  if (HAL_GPIO_ReadPin(INT_GPIO_Port, INT_Pin) == GPIO_PIN_SET)
-    {
-	    HAL_GPIO_WritePin(WAKE_GPIO_Port, WAKE_Pin, GPIO_PIN_RESET);
-	    HAL_Delay(100);
-	    HAL_GPIO_WritePin(WAKE_GPIO_Port, WAKE_Pin, GPIO_PIN_SET);
-    }
-  HAL_Delay(100);
   /* USER CODE END 2 */
 
   /* Init scheduler */
