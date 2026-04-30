@@ -7,7 +7,9 @@
 // HAL-функции, которые должен предоставить пользователь
 typedef struct {
     // Передача по SPI
-    int32_t (*spi_transfer)(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint8_t *rx_data, uint16_t len, uint32_t timeout);
+    int32_t (*spi_transmit)(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint16_t len, uint32_t timeout);
+
+    int32_t (*spi_receive)(SPI_HandleTypeDef* spi, uint8_t *rx_data, uint16_t len, uint32_t timeout);
     
     void (*gpio_write)(uint8_t pin, uint8_t state);
 

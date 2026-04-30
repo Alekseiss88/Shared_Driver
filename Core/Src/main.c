@@ -106,7 +106,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
   bn008x_hal_init_stm32(&hal);
   var = bn008x_init(&bn, &hal, &hspi2, 1, 3, 4, 0, 2);
-  bn008x_SetProtocolSPI(&bn);
   HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_RESET);
   HAL_Delay(100);
   HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_SET);

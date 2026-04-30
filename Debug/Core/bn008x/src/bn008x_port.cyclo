@@ -1,6 +1,7 @@
-../Core/bn008x/src/bn008x_port.c:10:16:stm32_spi_transfer	2
-../Core/bn008x/src/bn008x_port.c:15:13:stm32_gpio_write	1
-../Core/bn008x/src/bn008x_port.c:19:16:stm32_gpio_read	1
-../Core/bn008x/src/bn008x_port.c:23:13:stm32_delay_ms	1
-../Core/bn008x/src/bn008x_port.c:27:17:stm32_get_tick_ms	1
-../Core/bn008x/src/bn008x_port.c:33:6:bn008x_hal_init_stm32	2
+../Core/bn008x/src/bn008x_port.c:10:16:stm32_spi_transmit	2
+../Core/bn008x/src/bn008x_port.c:15:16:stm32_spi_receive	2
+../Core/bn008x/src/bn008x_port.c:20:13:stm32_gpio_write	1
+../Core/bn008x/src/bn008x_port.c:24:16:stm32_gpio_read	1
+../Core/bn008x/src/bn008x_port.c:28:13:stm32_delay_ms	1
+../Core/bn008x/src/bn008x_port.c:32:17:stm32_get_tick_ms	1
+../Core/bn008x/src/bn008x_port.c:38:6:bn008x_hal_init_stm32	2

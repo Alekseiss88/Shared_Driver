@@ -57,8 +57,8 @@
 #define BN008X_MAX_PACKET_SIZE          256
 
 #define BN008X_MAX_PACKET_SIZE          256     /**< Максимальный размер пакета */
-#define BN008X_RESET_DELAY_MS           300     /**< Задержка после сброса (мс) */
-#define BN008X_SPI_TIMEOUT_MS           1000     /**< Таймаут I2C по умолчанию (мс) */
+#define BN008X_RESET_DELAY_MS           3     /**< Задержка после сброса (мс) */
+#define BN008X_SPI_TIMEOUT_MS           10     /**< Таймаут I2C по умолчанию (мс) */
 #define BN008X_MAX_SENSORS              50      /**< Максимальное количество сенсоров */
 #define BN008X_DEFAULT_SAMPLE_RATE_HZ   100     /**< Частота опроса по умолчанию (Гц) */
 

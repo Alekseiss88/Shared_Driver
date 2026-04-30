@@ -3,7 +3,7 @@
 #include "stdio.h"
 static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel, 
                                          const uint8_t *data, uint16_t data_len) {
-    if (!dev || !dev->hal || !dev->hal->spi_transfer) {
+    if (!dev || !dev->hal || !dev->hal->spi_transmit) {
         return BN008X_ERROR_INVALID_PARAM;
     }
     
@@ -15,7 +15,6 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
     // Выделяем буфер для полного пакета (заголовок + данные)
     uint16_t total_len = data_len + 4;
     uint8_t tx_buffer[total_len];
-    uint8_t rx_buffer[total_len];
     // Формируем SHTP заголовок (4 байта)
     tx_buffer[0] = total_len & 0xFF;          // Length LSB
     tx_buffer[1] = (total_len >> 8) & 0xFF;    // Length MSB
@@ -34,7 +33,7 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
     
     // Отправляем по SPI
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
-    uint32_t result = dev->hal->spi_transfer(dev->spi, tx_buffer, rx_buffer, total_len, BN008X_SPI_TIMEOUT_MS);
+    uint32_t result = dev->hal->spi_transmit(dev->spi, tx_buffer, total_len, BN008X_SPI_TIMEOUT_MS);
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
     // Отдаём мьютекс
     /*if (dev->i2c_mutex) {
@@ -46,15 +45,13 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
 
 static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *len) {
     uint8_t header[4];
-    uint8_t mock[4];
-    memset(mock, 0xFF, 4);
     /*if (dev->i2c_mutex) {
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
     
     // Читаем заголовок shtp
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
-    int32_t result = dev->hal->spi_transfer(dev->spi, mock, header, 4, BN008X_SPI_TIMEOUT_MS);
+    int32_t result = dev->hal->spi_receive(dev->spi, header, 4, BN008X_SPI_TIMEOUT_MS);
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
     /*if (result != 0) {
         if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
@@ -74,9 +71,7 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     buffer[2] = header[2];
     buffer[3] = header[3];
     if (packet_len > 4) {
-    	uint8_t mock[packet_len-4];
-    	memset(mock, 0xFF, packet_len-4);
-        result = dev->hal->spi_transfer(dev->spi, mock, &buffer[4], packet_len - 4, BN008X_SPI_TIMEOUT_MS);
+        result = dev->hal->spi_receive(dev->spi, &buffer[4], packet_len - 4, BN008X_SPI_TIMEOUT_MS);
         if (result != 0) {
             //if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
             return BN008X_ERROR_SPI;
@@ -96,7 +91,7 @@ static bn008x_status_t send_simple_command(bn008x_t *dev, uint8_t channel, uint8
     return send_shtp_packet(dev, channel, data, 2);
 }
 
-static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id, 
+/*static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
                                              const uint8_t *params, uint8_t params_len) {
     uint8_t data[2 + params_len];
     
@@ -108,23 +103,23 @@ static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
     }
     
     return send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, data, sizeof(data));
-}
+}*/
 
-static bn008x_status_t BNO08X_Wake(bn008x_t *dev)
+static bn008x_status_t bn008x_Wake(bn008x_t *dev)
 {
   uint32_t start_ms;
 
-  if (gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_RESET)
+  if (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_RESET)
   {
     return BN008X_OK;
   }
 
-  gpio_write(dev->im_ports[BN008X_WAKE_PIN], 0);
+  dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 0);
   dev->hal->delay_ms(BN008X_RESET_DELAY_MS);
-  gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
+  dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
 
   start_ms = dev->hal->get_tick_ms();
-  while (gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET)
+  while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET)
   {
     if ((dev->hal->get_tick_ms() - start_ms) > BN008X_RESET_DELAY_MS)
     {
@@ -157,7 +152,8 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     bn008x_status_t status;
     uint8_t buffer[32];
     uint16_t len;
-    
+    bn008x_SetProtocolSPI(dev);
+    bn008x_Wake(dev);
     // Пробуем прочитать IDRequest
     status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
     if (status != BN008X_OK) {
@@ -209,7 +205,7 @@ bn008x_status_t bn008x_reset(bn008x_t *dev) {
     status = send_shtp_packet(dev, BN008X_CHANNEL_EXECUTABLE, exec_cmd, 1);
     
     // Если вдруг не сработало, запускаем инициализацию
-    if (status != BN008X_OK) {
+    /*if (status != BN008X_OK) {
         uint8_t init_cmd[8] = {
             BN008X_RID_COMMAND_REQUEST,  
             dev->tx_seq[2]++,
@@ -234,6 +230,32 @@ bn008x_status_t bn008x_reset(bn008x_t *dev) {
     // Сбрасывем флаг (опционально)
     //dev->initialized = 0;
     memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));  // Сбрасываем счётчик
-    
-    return BN008X_OK;
+    */
+    memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));
+    return status;
+}
+
+bn008x_status_t bn008x_hardreset(bn008x_t *dev){
+		if (!dev || !dev->hal) {
+	        return BN008X_ERROR_INVALID_PARAM;
+	    }
+	  uint32_t start_ms;
+
+	  bn008x_SetProtocolSPI(dev);
+
+	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_RESET);
+	  HAL_Delay(BN008X_RESET_DELAY_MS);
+	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_SET);
+
+	  start_ms = dev->hal->get_tick_ms();
+	  while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET)
+	  {
+		if ((dev->hal->get_tick_ms() - start_ms) > BN008X_RESET_DELAY_MS)
+		{
+		  return BN008X_ERROR_TIMEOUT;
+		}
+	  }
+
+	  /* Keep PS0/WAKE high through first H_INTN assertion to lock SPI mode. */
+	  return BN008X_OK;
 }

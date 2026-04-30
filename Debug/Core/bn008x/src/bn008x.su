@@ -1,8 +1,8 @@
-../Core/bn008x/src/bn008x.c:4:24:send_shtp_packet	96	dynamic
-../Core/bn008x/src/bn008x.c:47:24:read_response	80	dynamic
-../Core/bn008x/src/bn008x.c:94:24:send_simple_command	24	static
-../Core/bn008x/src/bn008x.c:99:24:send_command_request	64	dynamic
-../Core/bn008x/src/bn008x.c:113:24:BNO08X_Wake	24	static
-../Core/bn008x/src/bn008x.c:137:17:bn008x_init	64	static
-../Core/bn008x/src/bn008x.c:190:17:bn008x_SetProtocolSPI	16	static
-../Core/bn008x/src/bn008x.c:200:17:bn008x_reset	64	static
+../Core/bn008x/src/bn008x.c:4:24:send_shtp_packet	64	dynamic
+../Core/bn008x/src/bn008x.c:46:24:read_response	48	static
+../Core/bn008x/src/bn008x.c:89:24:send_simple_command	24	static
+../Core/bn008x/src/bn008x.c:108:24:bn008x_Wake	24	static
+../Core/bn008x/src/bn008x.c:132:17:bn008x_init	64	static
+../Core/bn008x/src/bn008x.c:186:17:bn008x_SetProtocolSPI	16	static
+../Core/bn008x/src/bn008x.c:196:17:bn008x_reset	24	static
+../Core/bn008x/src/bn008x.c:238:17:bn008x_hardreset	24	static

@@ -2,13 +2,18 @@
 #include "stm32f4xx_hal.h"
 
 //здесь в таблицах указывается соответствие между реальным портом и пином и абстрактным, заданный пользователем
-static const uint8_t pin_map[] = {PS1_Pin, WAKE_Pin, RESET_Pin, INT_Pin, CS_PIN_Pin};
+static const uint16_t pin_map[] = {PS1_Pin, WAKE_Pin, RESET_Pin, INT_Pin, CS_PIN_Pin};
 
 static GPIO_TypeDef* const ports[] = {PS1_GPIO_Port, WAKE_GPIO_Port, RESET_GPIO_Port, INT_GPIO_Port, CS_PIN_GPIO_Port};
 // ===== Реализация функций =====
 
-static int32_t stm32_spi_transfer(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint8_t *rx_data, uint16_t len, uint32_t timeout) {
-    HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(spi, tx_data, rx_data, len, timeout);
+static int32_t stm32_spi_transmit(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint16_t len, uint32_t timeout) {
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(spi, tx_data, len, timeout);
+    return (status == HAL_OK) ? 0 : -1;
+}
+
+static int32_t stm32_spi_receive(SPI_HandleTypeDef* spi, uint8_t *rx_data, uint16_t len, uint32_t timeout) {
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(spi, rx_data, len, timeout);
     return (status == HAL_OK) ? 0 : -1;
 }
 
@@ -33,7 +38,8 @@ static uint32_t stm32_get_tick_ms(void) {
 void bn008x_hal_init_stm32(bn008x_hal_t *hal) {
     if (hal == NULL) return;
     
-    hal->spi_transfer = stm32_spi_transfer;
+    hal->spi_transmit = stm32_spi_transmit;
+    hal->spi_receive = stm32_spi_receive;
     hal->gpio_write = stm32_gpio_write;
     hal->gpio_read = stm32_gpio_read;
     hal->delay_ms = stm32_delay_ms;
