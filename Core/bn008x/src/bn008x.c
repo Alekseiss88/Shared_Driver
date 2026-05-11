@@ -123,7 +123,7 @@ static bn008x_status_t bn008x_Wake(bn008x_t *dev)
   start_ms = dev->hal->get_tick_ms();
   while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET)
   {
-    if ((dev->hal->get_tick_ms() - start_ms) > BN008X_RESET_DELAY_MS)
+    if ((dev->hal->get_tick_ms() - start_ms) > BN008X_WAKE_DELAY_MS)
     {
       return BN008X_ERROR_TIMEOUT;
     }
@@ -180,47 +180,40 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     	}
     }*/
     uint8_t ready=1;
-    for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
-    	uint8_t drain_count=0;
-    	if(i%3==0){
-    		status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
-    		if (status != BN008X_OK) {
-    		    ready = 1;
-    		}
-    	}
-    	status = bn008x_Wake(dev);
-    	if(status!=BN008X_OK){
-    	    return status;
-    	}
-    	if(ready==1 || dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
-    		ready=0;
-			while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS)
-				  {
-					bn008x_status_t read_status = read_response(dev, buffer, &len);
-					if(read_status == BN008X_OK){
-						if(len>0){
-							uint8_t channel = buffer[2];
-							uint8_t report_id = buffer[4];
-							if (channel == BN008X_CHANNEL_CONTROL && report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
-								dev->initialized = 1;
-								return BN008X_OK;
-							}
-						}
-					}
-					drain_count++;
-					if(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
-						break;
-					}
-				  }
-    	}
-    	if(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
-    		ready=1;
-    	}
-    	dev->hal->delay_ms(10);
-    }
-    
-    // Сброс и инициализация
-    return BN008X_ERROR_NOT_INITIALIZED;
+	for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
+		status = bn008x_Wake(dev);
+		if (status != BN008X_OK) continue;
+
+		status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
+		if (status != BN008X_OK) continue;
+
+		uint32_t start = dev->hal->get_tick_ms();
+		while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET) {
+			if (dev->hal->get_tick_ms() - start > BN008X_INT_TIMEOUT_MS) {
+				break;
+			}
+		}
+
+		uint8_t drain_count = 0;
+		while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS) {
+			bn008x_status_t read_status = read_response(dev, buffer, &len);
+			if (read_status == BN008X_OK && len > 0) {
+				uint8_t channel = buffer[2];
+				uint8_t report_id = buffer[4];
+				if (channel == BN008X_CHANNEL_CONTROL && report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
+					dev->initialized = 1;
+					return BN008X_OK;
+				}
+				dev->hal->delay_ms(1);//Важная задержка! Без нее не успевает подняться CS
+			} else if (read_status != BN008X_OK) {
+				break;
+			}
+			drain_count++;
+			if (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) != GPIO_PIN_RESET) break;
+		}
+		dev->hal->delay_ms(100);
+	}
+	return BN008X_ERROR_NOT_INITIALIZED;
 }
 
 bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev)

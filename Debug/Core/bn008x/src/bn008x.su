@@ -3,6 +3,6 @@
 ../Core/bn008x/src/bn008x.c:91:24:send_simple_command	24	static
 ../Core/bn008x/src/bn008x.c:110:24:bn008x_Wake	24	static
 ../Core/bn008x/src/bn008x.c:134:17:bn008x_init	568	static
-../Core/bn008x/src/bn008x.c:226:17:bn008x_SetProtocolSPI	16	static
-../Core/bn008x/src/bn008x.c:236:17:bn008x_reset	24	static
-../Core/bn008x/src/bn008x.c:278:17:bn008x_hardreset	24	static
+../Core/bn008x/src/bn008x.c:219:17:bn008x_SetProtocolSPI	16	static
+../Core/bn008x/src/bn008x.c:229:17:bn008x_reset	24	static
+../Core/bn008x/src/bn008x.c:271:17:bn008x_hardreset	24	static
