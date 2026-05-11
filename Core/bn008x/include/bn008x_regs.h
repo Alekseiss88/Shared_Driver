@@ -56,12 +56,14 @@
 #define BN008X_TEMPERATURE_DATA_SIZE    2   /**< Температура: 2 байта */
 #define BN008X_MAX_PACKET_SIZE          256
 
-#define BN008X_MAX_PACKET_SIZE          256     /**< Максимальный размер пакета */
-#define BN008X_RESET_DELAY_MS           3     /**< Задержка после сброса (мс) */
-#define BN008X_SPI_TIMEOUT_MS           10     /**< Таймаут I2C по умолчанию (мс) */
+#define BN008X_MAX_PACKET_SIZE          512     /**< Максимальный размер пакета */
+#define BN008X_RESET_DELAY_MS           200     /**< Задержка после сброса (мс) */
+#define BN008X_SPI_TIMEOUT_MS           20     /**< Таймаут I2C по умолчанию (мс) */
 #define BN008X_MAX_SENSORS              50      /**< Максимальное количество сенсоров */
 #define BN008X_DEFAULT_SAMPLE_RATE_HZ   100     /**< Частота опроса по умолчанию (Гц) */
 #define BNO08X_RX_DRAIN_MAX_PACKETS     8
+#define BN008X_RESET_PULSE_DELAY_MS		2
+#define BN008X_NUM_ATTEMPTS				10
 
 #define BN008X_EXEC_CMD_RESET           0x01
 #endif

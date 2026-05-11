@@ -1,8 +1,8 @@
 ../Core/bn008x/src/bn008x.c:4:24:send_shtp_packet	64	dynamic
 ../Core/bn008x/src/bn008x.c:46:24:read_response	48	static
-../Core/bn008x/src/bn008x.c:89:24:send_simple_command	24	static
-../Core/bn008x/src/bn008x.c:108:24:bn008x_Wake	24	static
-../Core/bn008x/src/bn008x.c:132:17:bn008x_init	312	static
-../Core/bn008x/src/bn008x.c:214:17:bn008x_SetProtocolSPI	16	static
-../Core/bn008x/src/bn008x.c:224:17:bn008x_reset	24	static
-../Core/bn008x/src/bn008x.c:266:17:bn008x_hardreset	24	static
+../Core/bn008x/src/bn008x.c:91:24:send_simple_command	24	static
+../Core/bn008x/src/bn008x.c:110:24:bn008x_Wake	24	static
+../Core/bn008x/src/bn008x.c:134:17:bn008x_init	568	static
+../Core/bn008x/src/bn008x.c:226:17:bn008x_SetProtocolSPI	16	static
+../Core/bn008x/src/bn008x.c:236:17:bn008x_reset	24	static
+../Core/bn008x/src/bn008x.c:278:17:bn008x_hardreset	24	static

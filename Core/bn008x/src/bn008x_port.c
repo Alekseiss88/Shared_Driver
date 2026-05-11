@@ -13,7 +13,7 @@ static int32_t stm32_spi_transmit(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint
 }
 
 static int32_t stm32_spi_receive(SPI_HandleTypeDef* spi, uint8_t *rx_data, uint16_t len, uint32_t timeout) {
-    HAL_StatusTypeDef status = HAL_SPI_Transmit(spi, rx_data, len, timeout);
+    HAL_StatusTypeDef status = HAL_SPI_Receive(spi, rx_data, len, timeout);
     return (status == HAL_OK) ? 0 : -1;
 }
 

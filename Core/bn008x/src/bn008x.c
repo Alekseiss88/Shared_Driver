@@ -44,7 +44,7 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
 }
 
 static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *len) {
-    uint8_t header[4];
+    uint8_t header[4]={};
     /*if (dev->i2c_mutex) {
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
@@ -52,16 +52,17 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     // Читаем заголовок shtp
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
     int32_t result = dev->hal->spi_receive(dev->spi, header, 4, BN008X_SPI_TIMEOUT_MS);
-    dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
+
     /*if (result != 0) {
         if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
         return BN008X_ERROR_I2C;
     }*/
     
     uint16_t packet_len = header[0] | (header[1] << 8);
-    
+    packet_len &= 0x7FFFU;
     if (packet_len > BN008X_MAX_PACKET_SIZE) {
         //if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
+        dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
         return BN008X_ERROR_INVALID_PARAM;
     }
     
@@ -72,6 +73,7 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     buffer[3] = header[3];
     if (packet_len > 4) {
         result = dev->hal->spi_receive(dev->spi, &buffer[4], packet_len - 4, BN008X_SPI_TIMEOUT_MS);
+        dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
         if (result != 0) {
             //if (dev->i2c_mutex) xSemaphoreGive(dev->i2c_mutex);
             return BN008X_ERROR_SPI;
@@ -115,7 +117,7 @@ static bn008x_status_t bn008x_Wake(bn008x_t *dev)
   }
 
   dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 0);
-  dev->hal->delay_ms(BN008X_RESET_DELAY_MS);
+  dev->hal->delay_ms(BN008X_RESET_PULSE_DELAY_MS);
   dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
 
   start_ms = dev->hal->get_tick_ms();
@@ -150,7 +152,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     memset(&dev->cache, 0, sizeof(dev->cache));
     
     bn008x_status_t status;
-    uint8_t buffer[BN008X_MAX_PACKET_SIZE];
+    uint8_t buffer[BN008X_MAX_PACKET_SIZE]={};
     uint16_t len;
     status = bn008x_hardreset(dev);
     if(status!=BN008X_OK){
@@ -160,7 +162,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     if(status!=BN008X_OK){
     	return status;
     }
-    status = bn008x_Wake(dev);
+    /*status = bn008x_Wake(dev);
     if(status!=BN008X_OK){
     	return status;
     }
@@ -176,10 +178,20 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     	if(dev->hal->get_tick_ms()-ms>BN008X_SPI_TIMEOUT_MS){
     		return BN008X_ERROR_TIMEOUT;
     	}
-    }
-    uint8_t drain_count=0;
+    }*/
     uint8_t ready=1;
-    for(int i=0; i<3; i++){
+    for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
+    	uint8_t drain_count=0;
+    	if(i%3==0){
+    		status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
+    		if (status != BN008X_OK) {
+    		    ready = 1;
+    		}
+    	}
+    	status = bn008x_Wake(dev);
+    	if(status!=BN008X_OK){
+    	    return status;
+    	}
     	if(ready==1 || dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
     		ready=0;
 			while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS)
@@ -189,8 +201,9 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
 						if(len>0){
 							uint8_t channel = buffer[2];
 							uint8_t report_id = buffer[4];
-							if (channel == BN008X_CHANNEL_CONTROL || report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
-									return BN008X_OK;
+							if (channel == BN008X_CHANNEL_CONTROL && report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
+								dev->initialized = 1;
+								return BN008X_OK;
 							}
 						}
 					}
@@ -203,12 +216,11 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     	if(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_RESET){
     		ready=1;
     	}
-    	dev->hal->delay_ms(1);
+    	dev->hal->delay_ms(10);
     }
     
     // Сброс и инициализация
-    dev->initialized = 1;
-    return BN008X_OK;
+    return BN008X_ERROR_NOT_INITIALIZED;
 }
 
 bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev)
@@ -272,7 +284,7 @@ bn008x_status_t bn008x_hardreset(bn008x_t *dev){
 	  bn008x_SetProtocolSPI(dev);
 
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_RESET);
-	  HAL_Delay(BN008X_RESET_DELAY_MS);
+	  HAL_Delay(BN008X_RESET_PULSE_DELAY_MS);
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_SET);
 
 	  start_ms = dev->hal->get_tick_ms();
