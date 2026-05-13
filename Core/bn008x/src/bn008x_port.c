@@ -5,7 +5,6 @@
 static const uint16_t pin_map[] = {PS1_Pin, WAKE_Pin, RESET_Pin, INT_Pin, CS_PIN_Pin};
 
 static GPIO_TypeDef* const ports[] = {PS1_GPIO_Port, WAKE_GPIO_Port, RESET_GPIO_Port, INT_GPIO_Port, CS_PIN_GPIO_Port};
-// ===== Реализация функций =====
 
 static int32_t stm32_spi_transmit(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint16_t len, uint32_t timeout) {
     HAL_StatusTypeDef status = HAL_SPI_Transmit(spi, tx_data, len, timeout);
@@ -35,7 +34,7 @@ static uint32_t stm32_get_tick_ms(void) {
 
 // Инициализация HAL структуры
 
-void bn008x_hal_init_stm32(bn008x_hal_t *hal) {
+void bn008x_hal_init(bn008x_hal_t *hal) {
     if (hal == NULL) return;
     
     hal->spi_transmit = stm32_spi_transmit;

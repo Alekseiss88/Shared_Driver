@@ -75,8 +75,6 @@ int main(void)
 	bn008x_hal_t hal;
 	bn008x_status_t var;
 	bn008x_t bn;
-	HAL_StatusTypeDef status;
-	uint8_t buffer[4];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -105,7 +103,7 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(10);
-  bn008x_hal_init_stm32(&hal);
+  bn008x_hal_init(&hal);
   var = bn008x_init(&bn, &hal, &hspi2, 1, 3, 4, 0, 2);
   /* USER CODE END 2 */
 

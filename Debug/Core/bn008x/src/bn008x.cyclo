@@ -1,8 +1,8 @@
-../Core/bn008x/src/bn008x.c:4:24:send_shtp_packet	7
-../Core/bn008x/src/bn008x.c:46:24:read_response	4
-../Core/bn008x/src/bn008x.c:91:24:send_simple_command	1
-../Core/bn008x/src/bn008x.c:110:24:bn008x_Wake	4
-../Core/bn008x/src/bn008x.c:134:17:bn008x_init	17
-../Core/bn008x/src/bn008x.c:219:17:bn008x_SetProtocolSPI	3
-../Core/bn008x/src/bn008x.c:229:17:bn008x_reset	3
-../Core/bn008x/src/bn008x.c:271:17:bn008x_hardreset	5
+../Core/bn008x/src/bn008x.c:35:24:send_shtp_packet	7
+../Core/bn008x/src/bn008x.c:89:24:read_response	4
+../Core/bn008x/src/bn008x.c:142:24:send_simple_command	1
+../Core/bn008x/src/bn008x.c:157:24:bn008x_Wake	4
+../Core/bn008x/src/bn008x.c:181:17:bn008x_init	17
+../Core/bn008x/src/bn008x.c:249:17:bn008x_SetProtocolSPI	3
+../Core/bn008x/src/bn008x.c:259:17:bn008x_reset	3
+../Core/bn008x/src/bn008x.c:274:17:bn008x_hardreset	5

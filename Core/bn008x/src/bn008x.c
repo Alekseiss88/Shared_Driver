@@ -1,27 +1,56 @@
+/**
+ * @file bn008x.c
+ * @brief Реализация драйвера BNO08x (SPI, SHTP, инициализация, чтение данных)
+ * @author Aleksei
+ * @date 2025
+ * @version 1.0
+ *
+ * @details Драйвер реализует протокол SHTP поверх SPI.
+ *          Поддерживает инициализацию, пробуждение, чтение Product ID,
+ *          а также кэширование данных для polling-режима.
+ *
+ */
+
 #include "bn008x.h"
 #include <string.h>
 #include "stdio.h"
+
+/**
+ * @brief Отправка SHTP-пакета по SPI.
+ *
+ * Формирует 4-байтовый заголовок (длина LSB/MSB, канал, seq num),
+ * добавляет данные и отправляет пакет целиком.
+ *
+ * @param[in] dev       Указатель на контекст драйвера
+ * @param[in] channel   SHTP-канал (0..5)
+ * @param[in] data      Указатель на полезные данные (Report ID + параметры)
+ * @param[in] data_len  Длина полезных данных (байт)
+ *
+ * @retval BN008X_OK                  Пакет отправлен
+ * @retval BN008X_ERROR_INVALID_PARAM Неверные параметры (NULL, слишком большой пакет)
+ * @retval BN008X_ERROR_SPI           Ошибка SPI-передачи
+ *
+ * @note Увеличивает счётчик tx_seq[channel] после отправки.
+ */
 static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel, 
                                          const uint8_t *data, uint16_t data_len) {
     if (!dev || !dev->hal || !dev->hal->spi_transmit) {
         return BN008X_ERROR_INVALID_PARAM;
     }
     
-    // Проверяем длину
+
     if (data_len > BN008X_MAX_PACKET_SIZE - 4) {
-        return BN008X_ERROR_INVALID_PARAM;  // Слишком много данных
+        return BN008X_ERROR_INVALID_PARAM;
     }
     
-    // Выделяем буфер для полного пакета (заголовок + данные)
     uint16_t total_len = data_len + 4;
     uint8_t tx_buffer[total_len];
-    // Формируем SHTP заголовок (4 байта)
-    tx_buffer[0] = total_len & 0xFF;          // Length LSB
-    tx_buffer[1] = (total_len >> 8) & 0xFF;    // Length MSB
-    tx_buffer[2] = channel;                     // Channel
-    tx_buffer[3] = dev->tx_seq[channel]++;             // Sequence number (увеличиваем)
     
-    // Копируем данные после заголовка
+    tx_buffer[0] = total_len & 0xFF;
+    tx_buffer[1] = (total_len >> 8) & 0xFF;
+    tx_buffer[2] = channel;
+    tx_buffer[3] = dev->tx_seq[channel]++;
+
     for (uint16_t i = 0; i < data_len; i++) {
         tx_buffer[4 + i] = data[i];
     }
@@ -31,7 +60,6 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
     
-    // Отправляем по SPI
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
     uint32_t result = dev->hal->spi_transmit(dev->spi, tx_buffer, total_len, BN008X_SPI_TIMEOUT_MS);
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],1);
@@ -42,14 +70,28 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
     
     return (result == 0) ? BN008X_OK : BN008X_ERROR_SPI;
 }
-
+/**
+ * @brief Чтение одного SHTP-пакета из SPI.
+ *
+ * Сначала читает 4-байтовый заголовок, затем данные (если есть).
+ *
+ * @param[in]      dev     Указатель на контекст драйвера
+ * @param[out]     buffer  Указатель на буфер для приёма пакета (заголовок + данные)
+ * @param[out]     len     Указатель на фактическую длину принятого пакета (байт)
+ *
+ * @retval BN008X_OK                  Пакет прочитан
+ * @retval BN008X_ERROR_INVALID_PARAM Неверная длина пакета
+ * @retval BN008X_ERROR_SPI           Ошибка SPI-приёма
+ *
+ * @note После чтения CS поднимается. Между вызовами read_response рекомендуется
+ *       небольшая задержка (1 мс), чтобы датчик успел подготовить следующий пакет.
+ */
 static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *len) {
     uint8_t header[4]={};
     /*if (dev->i2c_mutex) {
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
     
-    // Читаем заголовок shtp
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
     int32_t result = dev->hal->spi_receive(dev->spi, header, 4, BN008X_SPI_TIMEOUT_MS);
 
@@ -66,7 +108,6 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
         return BN008X_ERROR_INVALID_PARAM;
     }
     
-    // Составляем полный пакет
     buffer[0] = header[0];
     buffer[1] = header[1];
     buffer[2] = header[2];
@@ -87,26 +128,32 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
     *len = packet_len;
     return BN008X_OK;
 }
-
+/**
+ * @brief Отправка простой команды (только Report ID).
+ *
+ * Формирует двухбайтовый массив: {report_id, 0x00} и вызывает send_shtp_packet.
+ *
+ * @param[in] dev       Указатель на контекст драйвера
+ * @param[in] channel   SHTP-канал
+ * @param[in] report_id Report ID команды
+ *
+ * @return Статус выполнения (пробрасывает статус send_shtp_packet)
+ */
 static bn008x_status_t send_simple_command(bn008x_t *dev, uint8_t channel, uint8_t report_id) {
     uint8_t data[2] = {report_id};
     return send_shtp_packet(dev, channel, data, 2);
 }
-
-/*static bn008x_status_t send_command_request(bn008x_t *dev, uint8_t cmd_id,
-                                             const uint8_t *params, uint8_t params_len) {
-    uint8_t data[2 + params_len];
-    
-    data[0] = BN008X_RID_COMMAND_REQUEST;  
-    data[1] = cmd_id;                        
-    
-    for (uint8_t i = 0; i < params_len; i++) {
-        data[2 + i] = params[i];
-    }
-    
-    return send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, data, sizeof(data));
-}*/
-
+/**
+ * @brief Пробуждение датчика через PS0/WAKE пин.
+ *
+ * Если INT уже активен (LOW), сразу возвращает успех.
+ * Иначе дёргает WAKE пином и ждёт, пока INT не станет LOW.
+ *
+ * @param[in] dev Указатель на контекст драйвера
+ *
+ * @retval BN008X_OK          Датчик проснулся
+ * @retval BN008X_ERROR_TIMEOUT Таймаут ожидания INT
+ */
 static bn008x_status_t bn008x_Wake(bn008x_t *dev)
 {
   uint32_t start_ms;
@@ -162,24 +209,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
     if(status!=BN008X_OK){
     	return status;
     }
-    /*status = bn008x_Wake(dev);
-    if(status!=BN008X_OK){
-    	return status;
-    }
-    // Пробуем прочитать IDRequest
-    status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
-    if (status != BN008X_OK) {
-        return status;
-    }
     
-    // Читаем ответ
-    uint32_t ms = dev->hal->get_tick_ms();
-    while(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET){
-    	if(dev->hal->get_tick_ms()-ms>BN008X_SPI_TIMEOUT_MS){
-    		return BN008X_ERROR_TIMEOUT;
-    	}
-    }*/
-    uint8_t ready=1;
 	for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
 		status = bn008x_Wake(dev);
 		if (status != BN008X_OK) continue;
@@ -237,33 +267,6 @@ bn008x_status_t bn008x_reset(bn008x_t *dev) {
     uint8_t exec_cmd[1] = {BN008X_EXEC_CMD_RESET};  
     status = send_shtp_packet(dev, BN008X_CHANNEL_EXECUTABLE, exec_cmd, 1);
     
-    // Если вдруг не сработало, запускаем инициализацию
-    /*if (status != BN008X_OK) {
-        uint8_t init_cmd[8] = {
-            BN008X_RID_COMMAND_REQUEST,  
-            dev->tx_seq[2]++,
-            BN008X_CMD_INITIALIZATION,     
-            0x01 //all sensor hub
-        };
-        status = send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, init_cmd, 8);
-    }
-    
-    if (status != BN008X_OK) {
-        return status;  // Оба варианта не сработали
-    }
-    
-    // Ждем некоторое время
-    dev->hal->delay_ms(BN008X_RESET_DELAY_MS);
-    
-    // Очистка буфера
-    uint8_t buffer[32];
-    uint16_t len;
-    (void)read_response(dev, buffer, &len);  
-    
-    // Сбрасывем флаг (опционально)
-    //dev->initialized = 0;
-    memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));  // Сбрасываем счётчик
-    */
     memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));
     return status;
 }
@@ -277,7 +280,7 @@ bn008x_status_t bn008x_hardreset(bn008x_t *dev){
 	  bn008x_SetProtocolSPI(dev);
 
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_RESET);
-	  HAL_Delay(BN008X_RESET_PULSE_DELAY_MS);
+	  dev->hal->delay_ms(BN008X_RESET_PULSE_DELAY_MS);
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_SET);
 
 	  start_ms = dev->hal->get_tick_ms();
@@ -289,6 +292,5 @@ bn008x_status_t bn008x_hardreset(bn008x_t *dev){
 		}
 	  }
 
-	  /* Keep PS0/WAKE high through first H_INTN assertion to lock SPI mode. */
 	  return BN008X_OK;
 }

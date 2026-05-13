@@ -27,25 +27,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  0000b00c  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00022834  00000000  00000000  0000b03c  2**0
+ 12 .debug_info   000227e9  00000000  00000000  0000b03c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00004e53  00000000  00000000  0002d870  2**0
+ 13 .debug_abbrev 00004e33  00000000  00000000  0002d825  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001dd8  00000000  00000000  000326c8  2**3
+ 14 .debug_aranges 00001dd8  00000000  00000000  00032658  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 00001735  00000000  00000000  000344a0  2**0
+ 15 .debug_rnglists 00001735  00000000  00000000  00034430  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0001bea7  00000000  00000000  00035bd5  2**0
+ 16 .debug_macro  0001be9b  00000000  00000000  00035b65  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0002537a  00000000  00000000  00051a7c  2**0
+ 17 .debug_line   0002537c  00000000  00000000  00051a00  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000a05cc  00000000  00000000  00076df6  2**0
+ 18 .debug_str    000a058e  00000000  00000000  00076d7c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  001173c2  2**0
+ 19 .comment      00000043  00000000  00000000  0011730a  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00007da4  00000000  00000000  00117408  2**2
+ 20 .debug_frame  00007da4  00000000  00000000  00117350  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 00000081  00000000  00000000  0011f1ac  2**0
+ 21 .debug_line_str 00000081  00000000  00000000  0011f0f4  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -952,10 +952,10 @@ int main(void)
   HAL_Delay(10);
  800087e:	200a      	movs	r0, #10
  8000880:	f001 f836 	bl	80018f0 <HAL_Delay>
-  bn008x_hal_init_stm32(&hal);
+  bn008x_hal_init(&hal);
  8000884:	f107 0354 	add.w	r3, r7, #84	@ 0x54
  8000888:	4618      	mov	r0, r3
- 800088a:	f000 ffc3 	bl	8001814 <bn008x_hal_init_stm32>
+ 800088a:	f000 ffc3 	bl	8001814 <bn008x_hal_init>
   var = bn008x_init(&bn, &hal, &hspi2, 1, 3, 4, 0, 2);
  800088e:	f107 0154 	add.w	r1, r7, #84	@ 0x54
  8000892:	1d38      	adds	r0, r7, #4
@@ -2451,9 +2451,10 @@ Infinite_Loop:
  8000fec:	e7fe      	b.n	8000fec <ADC_IRQHandler>
 
 08000fee <send_shtp_packet>:
-#include "bn008x.h"
-#include <string.h>
-#include "stdio.h"
+ * @retval BN008X_ERROR_SPI           Ошибка SPI-передачи
+ *
+ * @note Увеличивает счётчик tx_seq[channel] после отправки.
+ */
 static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel, 
                                          const uint8_t *data, uint16_t data_len) {
  8000fee:	e92d 43f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, lr}
@@ -2486,17 +2487,16 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
  8001022:	e07b      	b.n	800111c <send_shtp_packet+0x12e>
     }
     
-    // Проверяем длину
+
     if (data_len > BN008X_MAX_PACKET_SIZE - 4) {
  8001024:	893b      	ldrh	r3, [r7, #8]
  8001026:	f5b3 7ffe 	cmp.w	r3, #508	@ 0x1fc
  800102a:	d901      	bls.n	8001030 <send_shtp_packet+0x42>
-        return BN008X_ERROR_INVALID_PARAM;  // Слишком много данных
+        return BN008X_ERROR_INVALID_PARAM;
  800102c:	2303      	movs	r3, #3
  800102e:	e075      	b.n	800111c <send_shtp_packet+0x12e>
     }
     
-    // Выделяем буфер для полного пакета (заголовок + данные)
     uint16_t total_len = data_len + 4;
  8001030:	893b      	ldrh	r3, [r7, #8]
  8001032:	3304      	adds	r3, #4
@@ -2532,24 +2532,24 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
  800107e:	466b      	mov	r3, sp
  8001080:	3300      	adds	r3, #0
  8001082:	617b      	str	r3, [r7, #20]
-    // Формируем SHTP заголовок (4 байта)
-    tx_buffer[0] = total_len & 0xFF;          // Length LSB
+    
+    tx_buffer[0] = total_len & 0xFF;
  8001084:	8bbb      	ldrh	r3, [r7, #28]
  8001086:	b2da      	uxtb	r2, r3
  8001088:	697b      	ldr	r3, [r7, #20]
  800108a:	701a      	strb	r2, [r3, #0]
-    tx_buffer[1] = (total_len >> 8) & 0xFF;    // Length MSB
+    tx_buffer[1] = (total_len >> 8) & 0xFF;
  800108c:	8bbb      	ldrh	r3, [r7, #28]
  800108e:	0a1b      	lsrs	r3, r3, #8
  8001090:	b29b      	uxth	r3, r3
  8001092:	b2da      	uxtb	r2, r3
  8001094:	697b      	ldr	r3, [r7, #20]
  8001096:	705a      	strb	r2, [r3, #1]
-    tx_buffer[2] = channel;                     // Channel
+    tx_buffer[2] = channel;
  8001098:	697b      	ldr	r3, [r7, #20]
  800109a:	7afa      	ldrb	r2, [r7, #11]
  800109c:	709a      	strb	r2, [r3, #2]
-    tx_buffer[3] = dev->tx_seq[channel]++;             // Sequence number (увеличиваем)
+    tx_buffer[3] = dev->tx_seq[channel]++;
  800109e:	7afb      	ldrb	r3, [r7, #11]
  80010a0:	68fa      	ldr	r2, [r7, #12]
  80010a2:	441a      	add	r2, r3
@@ -2562,8 +2562,7 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
  80010b0:	7659      	strb	r1, [r3, #25]
  80010b2:	697b      	ldr	r3, [r7, #20]
  80010b4:	70da      	strb	r2, [r3, #3]
-    
-    // Копируем данные после заголовка
+
     for (uint16_t i = 0; i < data_len; i++) {
  80010b6:	2300      	movs	r3, #0
  80010b8:	83fb      	strh	r3, [r7, #30]
@@ -2585,11 +2584,11 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
  80010d4:	893b      	ldrh	r3, [r7, #8]
  80010d6:	429a      	cmp	r2, r3
  80010d8:	d3f0      	bcc.n	80010bc <send_shtp_packet+0xce>
+    // Захватываем мьютекс 
     /*if (dev->i2c_mutex) {
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
     
-    // Отправляем по SPI
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
  80010da:	68fb      	ldr	r3, [r7, #12]
  80010dc:	681b      	ldr	r3, [r3, #0]
@@ -2640,7 +2639,11 @@ static bn008x_status_t send_shtp_packet(bn008x_t *dev, uint8_t channel,
  8001124:	e8bd 83f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, r9, pc}
 
 08001128 <read_response>:
-
+ * @retval BN008X_ERROR_SPI           Ошибка SPI-приёма
+ *
+ * @note После чтения CS поднимается. Между вызовами read_response рекомендуется
+ *       небольшая задержка (1 мс), чтобы датчик успел подготовить следующий пакет.
+ */
 static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *len) {
  8001128:	b590      	push	{r4, r7, lr}
  800112a:	b089      	sub	sp, #36	@ 0x24
@@ -2655,7 +2658,6 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
         xSemaphoreTake(dev->i2c_mutex, portMAX_DELAY);
     }*/
     
-    // Читаем заголовок shtp
     dev->hal->gpio_write(dev->im_ports[BN008X_CS_PIN],0);
  8001138:	68fb      	ldr	r3, [r7, #12]
  800113a:	681b      	ldr	r3, [r3, #0]
@@ -2714,7 +2716,6 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
  8001192:	e02f      	b.n	80011f4 <read_response+0xcc>
     }
     
-    // Составляем полный пакет
     buffer[0] = header[0];
  8001194:	7d3a      	ldrb	r2, [r7, #20]
  8001196:	68bb      	ldr	r3, [r7, #8]
@@ -2787,7 +2788,11 @@ static bn008x_status_t read_response(bn008x_t *dev, uint8_t *buffer, uint16_t *l
  80011fa:	bd90      	pop	{r4, r7, pc}
 
 080011fc <send_simple_command>:
-
+ * @param[in] channel   SHTP-канал
+ * @param[in] report_id Report ID команды
+ *
+ * @return Статус выполнения (пробрасывает статус send_shtp_packet)
+ */
 static bn008x_status_t send_simple_command(bn008x_t *dev, uint8_t channel, uint8_t report_id) {
  80011fc:	b580      	push	{r7, lr}
  80011fe:	b084      	sub	sp, #16
@@ -2816,10 +2821,10 @@ static bn008x_status_t send_simple_command(bn008x_t *dev, uint8_t channel, uint8
  800122a:	bd80      	pop	{r7, pc}
 
 0800122c <bn008x_Wake>:
-    
-    return send_shtp_packet(dev, BN008X_CHANNEL_CONTROL, data, sizeof(data));
-}*/
-
+ *
+ * @retval BN008X_OK          Датчик проснулся
+ * @retval BN008X_ERROR_TIMEOUT Таймаут ожидания INT
+ */
 static bn008x_status_t bn008x_Wake(bn008x_t *dev)
 {
  800122c:	b580      	push	{r7, lr}
@@ -2946,7 +2951,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
  8001302:	d101      	bne.n	8001308 <bn008x_init+0x52>
         return BN008X_ERROR_INVALID_PARAM;
  8001304:	2303      	movs	r3, #3
- 8001306:	e16d      	b.n	80015e4 <bn008x_init+0x32e>
+ 8001306:	e16a      	b.n	80015de <bn008x_init+0x328>
     }
 
     // Сохраняем данные в структуре
@@ -3050,7 +3055,7 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
  80013f6:	f507 730a 	add.w	r3, r7, #552	@ 0x228
  80013fa:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
  80013fe:	6818      	ldr	r0, [r3, #0]
- 8001400:	f000 f93b 	bl	800167a <bn008x_hardreset>
+ 8001400:	f000 f938 	bl	8001674 <bn008x_hardreset>
  8001404:	4603      	mov	r3, r0
  8001406:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
     if(status!=BN008X_OK){
@@ -3059,13 +3064,13 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
  8001410:	d002      	beq.n	8001418 <bn008x_init+0x162>
     	return status;
  8001412:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
- 8001416:	e0e5      	b.n	80015e4 <bn008x_init+0x32e>
+ 8001416:	e0e2      	b.n	80015de <bn008x_init+0x328>
     }
     status = bn008x_reset(dev);
  8001418:	f507 730a 	add.w	r3, r7, #552	@ 0x228
  800141c:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
  8001420:	6818      	ldr	r0, [r3, #0]
- 8001422:	f000 f906 	bl	8001632 <bn008x_reset>
+ 8001422:	f000 f903 	bl	800162c <bn008x_reset>
  8001426:	4603      	mov	r3, r0
  8001428:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
     if(status!=BN008X_OK){
@@ -3074,474 +3079,467 @@ bn008x_status_t bn008x_init(bn008x_t *dev, const bn008x_hal_t *hal, SPI_HandleTy
  8001432:	d002      	beq.n	800143a <bn008x_init+0x184>
     	return status;
  8001434:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
- 8001438:	e0d4      	b.n	80015e4 <bn008x_init+0x32e>
-    while(dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET){
-    	if(dev->hal->get_tick_ms()-ms>BN008X_SPI_TIMEOUT_MS){
-    		return BN008X_ERROR_TIMEOUT;
-    	}
-    }*/
-    uint8_t ready=1;
- 800143a:	2301      	movs	r3, #1
- 800143c:	f887 3221 	strb.w	r3, [r7, #545]	@ 0x221
+ 8001438:	e0d1      	b.n	80015de <bn008x_init+0x328>
+    }
+    
 	for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
- 8001440:	2300      	movs	r3, #0
- 8001442:	f8c7 3224 	str.w	r3, [r7, #548]	@ 0x224
- 8001446:	e0c7      	b.n	80015d8 <bn008x_init+0x322>
+ 800143a:	2300      	movs	r3, #0
+ 800143c:	f8c7 3224 	str.w	r3, [r7, #548]	@ 0x224
+ 8001440:	e0c7      	b.n	80015d2 <bn008x_init+0x31c>
 		status = bn008x_Wake(dev);
- 8001448:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800144c:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 8001450:	6818      	ldr	r0, [r3, #0]
- 8001452:	f7ff feeb 	bl	800122c <bn008x_Wake>
- 8001456:	4603      	mov	r3, r0
- 8001458:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
+ 8001442:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001446:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 800144a:	6818      	ldr	r0, [r3, #0]
+ 800144c:	f7ff feee 	bl	800122c <bn008x_Wake>
+ 8001450:	4603      	mov	r3, r0
+ 8001452:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
 		if (status != BN008X_OK) continue;
- 800145c:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
- 8001460:	2b00      	cmp	r3, #0
- 8001462:	f040 80b1 	bne.w	80015c8 <bn008x_init+0x312>
+ 8001456:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
+ 800145a:	2b00      	cmp	r3, #0
+ 800145c:	f040 80b1 	bne.w	80015c2 <bn008x_init+0x30c>
 
 		status = send_simple_command(dev, BN008X_CHANNEL_CONTROL, BN008X_RID_PRODUCT_ID_REQUEST);
- 8001466:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800146a:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 800146e:	22f9      	movs	r2, #249	@ 0xf9
- 8001470:	2102      	movs	r1, #2
- 8001472:	6818      	ldr	r0, [r3, #0]
- 8001474:	f7ff fec2 	bl	80011fc <send_simple_command>
- 8001478:	4603      	mov	r3, r0
- 800147a:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
+ 8001460:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001464:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 8001468:	22f9      	movs	r2, #249	@ 0xf9
+ 800146a:	2102      	movs	r1, #2
+ 800146c:	6818      	ldr	r0, [r3, #0]
+ 800146e:	f7ff fec5 	bl	80011fc <send_simple_command>
+ 8001472:	4603      	mov	r3, r0
+ 8001474:	f887 3222 	strb.w	r3, [r7, #546]	@ 0x222
 		if (status != BN008X_OK) continue;
- 800147e:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
- 8001482:	2b00      	cmp	r3, #0
- 8001484:	f040 80a2 	bne.w	80015cc <bn008x_init+0x316>
+ 8001478:	f897 3222 	ldrb.w	r3, [r7, #546]	@ 0x222
+ 800147c:	2b00      	cmp	r3, #0
+ 800147e:	f040 80a2 	bne.w	80015c6 <bn008x_init+0x310>
 
 		uint32_t start = dev->hal->get_tick_ms();
- 8001488:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800148c:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 8001490:	681b      	ldr	r3, [r3, #0]
- 8001492:	681b      	ldr	r3, [r3, #0]
- 8001494:	695b      	ldr	r3, [r3, #20]
- 8001496:	4798      	blx	r3
- 8001498:	f8c7 021c 	str.w	r0, [r7, #540]	@ 0x21c
+ 8001482:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001486:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 800148a:	681b      	ldr	r3, [r3, #0]
+ 800148c:	681b      	ldr	r3, [r3, #0]
+ 800148e:	695b      	ldr	r3, [r3, #20]
+ 8001490:	4798      	blx	r3
+ 8001492:	f8c7 021c 	str.w	r0, [r7, #540]	@ 0x21c
 		while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET) {
- 800149c:	e00d      	b.n	80014ba <bn008x_init+0x204>
+ 8001496:	e00d      	b.n	80014b4 <bn008x_init+0x1fe>
 			if (dev->hal->get_tick_ms() - start > BN008X_INT_TIMEOUT_MS) {
- 800149e:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 80014a2:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 80014a6:	681b      	ldr	r3, [r3, #0]
- 80014a8:	681b      	ldr	r3, [r3, #0]
- 80014aa:	695b      	ldr	r3, [r3, #20]
- 80014ac:	4798      	blx	r3
- 80014ae:	4602      	mov	r2, r0
- 80014b0:	f8d7 321c 	ldr.w	r3, [r7, #540]	@ 0x21c
- 80014b4:	1ad3      	subs	r3, r2, r3
- 80014b6:	2b14      	cmp	r3, #20
- 80014b8:	d812      	bhi.n	80014e0 <bn008x_init+0x22a>
+ 8001498:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 800149c:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 80014a0:	681b      	ldr	r3, [r3, #0]
+ 80014a2:	681b      	ldr	r3, [r3, #0]
+ 80014a4:	695b      	ldr	r3, [r3, #20]
+ 80014a6:	4798      	blx	r3
+ 80014a8:	4602      	mov	r2, r0
+ 80014aa:	f8d7 321c 	ldr.w	r3, [r7, #540]	@ 0x21c
+ 80014ae:	1ad3      	subs	r3, r2, r3
+ 80014b0:	2b14      	cmp	r3, #20
+ 80014b2:	d812      	bhi.n	80014da <bn008x_init+0x224>
 		while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) == GPIO_PIN_SET) {
- 80014ba:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 80014be:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 80014c2:	681b      	ldr	r3, [r3, #0]
- 80014c4:	681b      	ldr	r3, [r3, #0]
- 80014c6:	68db      	ldr	r3, [r3, #12]
- 80014c8:	f507 720a 	add.w	r2, r7, #552	@ 0x228
- 80014cc:	f5a2 7207 	sub.w	r2, r2, #540	@ 0x21c
- 80014d0:	6812      	ldr	r2, [r2, #0]
- 80014d2:	7992      	ldrb	r2, [r2, #6]
- 80014d4:	4610      	mov	r0, r2
- 80014d6:	4798      	blx	r3
- 80014d8:	4603      	mov	r3, r0
- 80014da:	2b01      	cmp	r3, #1
- 80014dc:	d0df      	beq.n	800149e <bn008x_init+0x1e8>
- 80014de:	e000      	b.n	80014e2 <bn008x_init+0x22c>
+ 80014b4:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 80014b8:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 80014bc:	681b      	ldr	r3, [r3, #0]
+ 80014be:	681b      	ldr	r3, [r3, #0]
+ 80014c0:	68db      	ldr	r3, [r3, #12]
+ 80014c2:	f507 720a 	add.w	r2, r7, #552	@ 0x228
+ 80014c6:	f5a2 7207 	sub.w	r2, r2, #540	@ 0x21c
+ 80014ca:	6812      	ldr	r2, [r2, #0]
+ 80014cc:	7992      	ldrb	r2, [r2, #6]
+ 80014ce:	4610      	mov	r0, r2
+ 80014d0:	4798      	blx	r3
+ 80014d2:	4603      	mov	r3, r0
+ 80014d4:	2b01      	cmp	r3, #1
+ 80014d6:	d0df      	beq.n	8001498 <bn008x_init+0x1e2>
+ 80014d8:	e000      	b.n	80014dc <bn008x_init+0x226>
 				break;
- 80014e0:	bf00      	nop
+ 80014da:	bf00      	nop
 			}
 		}
 
 		uint8_t drain_count = 0;
- 80014e2:	2300      	movs	r3, #0
- 80014e4:	f887 3223 	strb.w	r3, [r7, #547]	@ 0x223
+ 80014dc:	2300      	movs	r3, #0
+ 80014de:	f887 3223 	strb.w	r3, [r7, #547]	@ 0x223
 		while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS) {
- 80014e8:	e05c      	b.n	80015a4 <bn008x_init+0x2ee>
+ 80014e2:	e05c      	b.n	800159e <bn008x_init+0x2e8>
 			bn008x_status_t read_status = read_response(dev, buffer, &len);
- 80014ea:	f107 0216 	add.w	r2, r7, #22
- 80014ee:	f107 0118 	add.w	r1, r7, #24
- 80014f2:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 80014f6:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 80014fa:	6818      	ldr	r0, [r3, #0]
- 80014fc:	f7ff fe14 	bl	8001128 <read_response>
- 8001500:	4603      	mov	r3, r0
- 8001502:	f887 321b 	strb.w	r3, [r7, #539]	@ 0x21b
+ 80014e4:	f107 0216 	add.w	r2, r7, #22
+ 80014e8:	f107 0118 	add.w	r1, r7, #24
+ 80014ec:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 80014f0:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 80014f4:	6818      	ldr	r0, [r3, #0]
+ 80014f6:	f7ff fe17 	bl	8001128 <read_response>
+ 80014fa:	4603      	mov	r3, r0
+ 80014fc:	f887 321b 	strb.w	r3, [r7, #539]	@ 0x21b
 			if (read_status == BN008X_OK && len > 0) {
- 8001506:	f897 321b 	ldrb.w	r3, [r7, #539]	@ 0x21b
- 800150a:	2b00      	cmp	r3, #0
- 800150c:	d12f      	bne.n	800156e <bn008x_init+0x2b8>
- 800150e:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 8001512:	f2a3 2312 	subw	r3, r3, #530	@ 0x212
- 8001516:	881b      	ldrh	r3, [r3, #0]
- 8001518:	2b00      	cmp	r3, #0
- 800151a:	d028      	beq.n	800156e <bn008x_init+0x2b8>
+ 8001500:	f897 321b 	ldrb.w	r3, [r7, #539]	@ 0x21b
+ 8001504:	2b00      	cmp	r3, #0
+ 8001506:	d12f      	bne.n	8001568 <bn008x_init+0x2b2>
+ 8001508:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 800150c:	f2a3 2312 	subw	r3, r3, #530	@ 0x212
+ 8001510:	881b      	ldrh	r3, [r3, #0]
+ 8001512:	2b00      	cmp	r3, #0
+ 8001514:	d028      	beq.n	8001568 <bn008x_init+0x2b2>
 				uint8_t channel = buffer[2];
- 800151c:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 8001520:	f5a3 7304 	sub.w	r3, r3, #528	@ 0x210
- 8001524:	789b      	ldrb	r3, [r3, #2]
- 8001526:	f887 321a 	strb.w	r3, [r7, #538]	@ 0x21a
+ 8001516:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 800151a:	f5a3 7304 	sub.w	r3, r3, #528	@ 0x210
+ 800151e:	789b      	ldrb	r3, [r3, #2]
+ 8001520:	f887 321a 	strb.w	r3, [r7, #538]	@ 0x21a
 				uint8_t report_id = buffer[4];
- 800152a:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800152e:	f5a3 7304 	sub.w	r3, r3, #528	@ 0x210
- 8001532:	791b      	ldrb	r3, [r3, #4]
- 8001534:	f887 3219 	strb.w	r3, [r7, #537]	@ 0x219
+ 8001524:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001528:	f5a3 7304 	sub.w	r3, r3, #528	@ 0x210
+ 800152c:	791b      	ldrb	r3, [r3, #4]
+ 800152e:	f887 3219 	strb.w	r3, [r7, #537]	@ 0x219
 				if (channel == BN008X_CHANNEL_CONTROL && report_id == BN008X_RID_PRODUCT_ID_RESPONSE) {
- 8001538:	f897 321a 	ldrb.w	r3, [r7, #538]	@ 0x21a
- 800153c:	2b02      	cmp	r3, #2
- 800153e:	d10c      	bne.n	800155a <bn008x_init+0x2a4>
- 8001540:	f897 3219 	ldrb.w	r3, [r7, #537]	@ 0x219
- 8001544:	2bf8      	cmp	r3, #248	@ 0xf8
- 8001546:	d108      	bne.n	800155a <bn008x_init+0x2a4>
+ 8001532:	f897 321a 	ldrb.w	r3, [r7, #538]	@ 0x21a
+ 8001536:	2b02      	cmp	r3, #2
+ 8001538:	d10c      	bne.n	8001554 <bn008x_init+0x29e>
+ 800153a:	f897 3219 	ldrb.w	r3, [r7, #537]	@ 0x219
+ 800153e:	2bf8      	cmp	r3, #248	@ 0xf8
+ 8001540:	d108      	bne.n	8001554 <bn008x_init+0x29e>
 					dev->initialized = 1;
- 8001548:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800154c:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 8001550:	681b      	ldr	r3, [r3, #0]
- 8001552:	2201      	movs	r2, #1
- 8001554:	761a      	strb	r2, [r3, #24]
+ 8001542:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001546:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 800154a:	681b      	ldr	r3, [r3, #0]
+ 800154c:	2201      	movs	r2, #1
+ 800154e:	761a      	strb	r2, [r3, #24]
 					return BN008X_OK;
- 8001556:	2300      	movs	r3, #0
- 8001558:	e044      	b.n	80015e4 <bn008x_init+0x32e>
+ 8001550:	2300      	movs	r3, #0
+ 8001552:	e044      	b.n	80015de <bn008x_init+0x328>
 				}
 				dev->hal->delay_ms(1);//Важная задержка! Без нее не успевает подняться CS
- 800155a:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 800155e:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 8001562:	681b      	ldr	r3, [r3, #0]
- 8001564:	681b      	ldr	r3, [r3, #0]
- 8001566:	691b      	ldr	r3, [r3, #16]
- 8001568:	2001      	movs	r0, #1
- 800156a:	4798      	blx	r3
+ 8001554:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 8001558:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 800155c:	681b      	ldr	r3, [r3, #0]
+ 800155e:	681b      	ldr	r3, [r3, #0]
+ 8001560:	691b      	ldr	r3, [r3, #16]
+ 8001562:	2001      	movs	r0, #1
+ 8001564:	4798      	blx	r3
 			if (read_status == BN008X_OK && len > 0) {
- 800156c:	e003      	b.n	8001576 <bn008x_init+0x2c0>
+ 8001566:	e003      	b.n	8001570 <bn008x_init+0x2ba>
 			} else if (read_status != BN008X_OK) {
- 800156e:	f897 321b 	ldrb.w	r3, [r7, #539]	@ 0x21b
- 8001572:	2b00      	cmp	r3, #0
- 8001574:	d11b      	bne.n	80015ae <bn008x_init+0x2f8>
+ 8001568:	f897 321b 	ldrb.w	r3, [r7, #539]	@ 0x21b
+ 800156c:	2b00      	cmp	r3, #0
+ 800156e:	d11b      	bne.n	80015a8 <bn008x_init+0x2f2>
 				break;
 			}
 			drain_count++;
- 8001576:	f897 3223 	ldrb.w	r3, [r7, #547]	@ 0x223
- 800157a:	3301      	adds	r3, #1
- 800157c:	f887 3223 	strb.w	r3, [r7, #547]	@ 0x223
+ 8001570:	f897 3223 	ldrb.w	r3, [r7, #547]	@ 0x223
+ 8001574:	3301      	adds	r3, #1
+ 8001576:	f887 3223 	strb.w	r3, [r7, #547]	@ 0x223
 			if (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) != GPIO_PIN_RESET) break;
- 8001580:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 8001584:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 8001588:	681b      	ldr	r3, [r3, #0]
- 800158a:	681b      	ldr	r3, [r3, #0]
- 800158c:	68db      	ldr	r3, [r3, #12]
- 800158e:	f507 720a 	add.w	r2, r7, #552	@ 0x228
- 8001592:	f5a2 7207 	sub.w	r2, r2, #540	@ 0x21c
- 8001596:	6812      	ldr	r2, [r2, #0]
- 8001598:	7992      	ldrb	r2, [r2, #6]
- 800159a:	4610      	mov	r0, r2
- 800159c:	4798      	blx	r3
- 800159e:	4603      	mov	r3, r0
- 80015a0:	2b00      	cmp	r3, #0
- 80015a2:	d106      	bne.n	80015b2 <bn008x_init+0x2fc>
+ 800157a:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 800157e:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 8001582:	681b      	ldr	r3, [r3, #0]
+ 8001584:	681b      	ldr	r3, [r3, #0]
+ 8001586:	68db      	ldr	r3, [r3, #12]
+ 8001588:	f507 720a 	add.w	r2, r7, #552	@ 0x228
+ 800158c:	f5a2 7207 	sub.w	r2, r2, #540	@ 0x21c
+ 8001590:	6812      	ldr	r2, [r2, #0]
+ 8001592:	7992      	ldrb	r2, [r2, #6]
+ 8001594:	4610      	mov	r0, r2
+ 8001596:	4798      	blx	r3
+ 8001598:	4603      	mov	r3, r0
+ 800159a:	2b00      	cmp	r3, #0
+ 800159c:	d106      	bne.n	80015ac <bn008x_init+0x2f6>
 		while (drain_count < BNO08X_RX_DRAIN_MAX_PACKETS) {
- 80015a4:	f897 3223 	ldrb.w	r3, [r7, #547]	@ 0x223
- 80015a8:	2b07      	cmp	r3, #7
- 80015aa:	d99e      	bls.n	80014ea <bn008x_init+0x234>
- 80015ac:	e002      	b.n	80015b4 <bn008x_init+0x2fe>
+ 800159e:	f897 3223 	ldrb.w	r3, [r7, #547]	@ 0x223
+ 80015a2:	2b07      	cmp	r3, #7
+ 80015a4:	d99e      	bls.n	80014e4 <bn008x_init+0x22e>
+ 80015a6:	e002      	b.n	80015ae <bn008x_init+0x2f8>
 				break;
- 80015ae:	bf00      	nop
- 80015b0:	e000      	b.n	80015b4 <bn008x_init+0x2fe>
+ 80015a8:	bf00      	nop
+ 80015aa:	e000      	b.n	80015ae <bn008x_init+0x2f8>
 			if (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN]) != GPIO_PIN_RESET) break;
- 80015b2:	bf00      	nop
+ 80015ac:	bf00      	nop
 		}
 		dev->hal->delay_ms(100);
- 80015b4:	f507 730a 	add.w	r3, r7, #552	@ 0x228
- 80015b8:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
- 80015bc:	681b      	ldr	r3, [r3, #0]
- 80015be:	681b      	ldr	r3, [r3, #0]
- 80015c0:	691b      	ldr	r3, [r3, #16]
- 80015c2:	2064      	movs	r0, #100	@ 0x64
- 80015c4:	4798      	blx	r3
- 80015c6:	e002      	b.n	80015ce <bn008x_init+0x318>
+ 80015ae:	f507 730a 	add.w	r3, r7, #552	@ 0x228
+ 80015b2:	f5a3 7307 	sub.w	r3, r3, #540	@ 0x21c
+ 80015b6:	681b      	ldr	r3, [r3, #0]
+ 80015b8:	681b      	ldr	r3, [r3, #0]
+ 80015ba:	691b      	ldr	r3, [r3, #16]
+ 80015bc:	2064      	movs	r0, #100	@ 0x64
+ 80015be:	4798      	blx	r3
+ 80015c0:	e002      	b.n	80015c8 <bn008x_init+0x312>
 		if (status != BN008X_OK) continue;
- 80015c8:	bf00      	nop
- 80015ca:	e000      	b.n	80015ce <bn008x_init+0x318>
+ 80015c2:	bf00      	nop
+ 80015c4:	e000      	b.n	80015c8 <bn008x_init+0x312>
 		if (status != BN008X_OK) continue;
- 80015cc:	bf00      	nop
+ 80015c6:	bf00      	nop
 	for(int i=0; i<BN008X_NUM_ATTEMPTS; i++){
- 80015ce:	f8d7 3224 	ldr.w	r3, [r7, #548]	@ 0x224
- 80015d2:	3301      	adds	r3, #1
- 80015d4:	f8c7 3224 	str.w	r3, [r7, #548]	@ 0x224
- 80015d8:	f8d7 3224 	ldr.w	r3, [r7, #548]	@ 0x224
- 80015dc:	2b02      	cmp	r3, #2
- 80015de:	f77f af33 	ble.w	8001448 <bn008x_init+0x192>
+ 80015c8:	f8d7 3224 	ldr.w	r3, [r7, #548]	@ 0x224
+ 80015cc:	3301      	adds	r3, #1
+ 80015ce:	f8c7 3224 	str.w	r3, [r7, #548]	@ 0x224
+ 80015d2:	f8d7 3224 	ldr.w	r3, [r7, #548]	@ 0x224
+ 80015d6:	2b02      	cmp	r3, #2
+ 80015d8:	f77f af33 	ble.w	8001442 <bn008x_init+0x18c>
 	}
 	return BN008X_ERROR_NOT_INITIALIZED;
- 80015e2:	2304      	movs	r3, #4
+ 80015dc:	2304      	movs	r3, #4
 }
- 80015e4:	4618      	mov	r0, r3
- 80015e6:	f507 770b 	add.w	r7, r7, #556	@ 0x22c
- 80015ea:	46bd      	mov	sp, r7
- 80015ec:	bd90      	pop	{r4, r7, pc}
+ 80015de:	4618      	mov	r0, r3
+ 80015e0:	f507 770b 	add.w	r7, r7, #556	@ 0x22c
+ 80015e4:	46bd      	mov	sp, r7
+ 80015e6:	bd90      	pop	{r4, r7, pc}
 
-080015ee <bn008x_SetProtocolSPI>:
+080015e8 <bn008x_SetProtocolSPI>:
 
 bn008x_status_t bn008x_SetProtocolSPI(bn008x_t *dev)
 {
- 80015ee:	b580      	push	{r7, lr}
- 80015f0:	b082      	sub	sp, #8
- 80015f2:	af00      	add	r7, sp, #0
- 80015f4:	6078      	str	r0, [r7, #4]
+ 80015e8:	b580      	push	{r7, lr}
+ 80015ea:	b082      	sub	sp, #8
+ 80015ec:	af00      	add	r7, sp, #0
+ 80015ee:	6078      	str	r0, [r7, #4]
 	if(!dev || !dev->hal){
+ 80015f0:	687b      	ldr	r3, [r7, #4]
+ 80015f2:	2b00      	cmp	r3, #0
+ 80015f4:	d003      	beq.n	80015fe <bn008x_SetProtocolSPI+0x16>
  80015f6:	687b      	ldr	r3, [r7, #4]
- 80015f8:	2b00      	cmp	r3, #0
- 80015fa:	d003      	beq.n	8001604 <bn008x_SetProtocolSPI+0x16>
- 80015fc:	687b      	ldr	r3, [r7, #4]
- 80015fe:	681b      	ldr	r3, [r3, #0]
- 8001600:	2b00      	cmp	r3, #0
- 8001602:	d101      	bne.n	8001608 <bn008x_SetProtocolSPI+0x1a>
+ 80015f8:	681b      	ldr	r3, [r3, #0]
+ 80015fa:	2b00      	cmp	r3, #0
+ 80015fc:	d101      	bne.n	8001602 <bn008x_SetProtocolSPI+0x1a>
 		return BN008X_ERROR_INVALID_PARAM;
- 8001604:	2303      	movs	r3, #3
- 8001606:	e010      	b.n	800162a <bn008x_SetProtocolSPI+0x3c>
+ 80015fe:	2303      	movs	r3, #3
+ 8001600:	e010      	b.n	8001624 <bn008x_SetProtocolSPI+0x3c>
 	}
 	dev->hal->gpio_write(dev->im_ports[BN008X_PS1_PIN], 1);
- 8001608:	687b      	ldr	r3, [r7, #4]
- 800160a:	681b      	ldr	r3, [r3, #0]
- 800160c:	689b      	ldr	r3, [r3, #8]
- 800160e:	687a      	ldr	r2, [r7, #4]
- 8001610:	79d2      	ldrb	r2, [r2, #7]
- 8001612:	2101      	movs	r1, #1
- 8001614:	4610      	mov	r0, r2
- 8001616:	4798      	blx	r3
+ 8001602:	687b      	ldr	r3, [r7, #4]
+ 8001604:	681b      	ldr	r3, [r3, #0]
+ 8001606:	689b      	ldr	r3, [r3, #8]
+ 8001608:	687a      	ldr	r2, [r7, #4]
+ 800160a:	79d2      	ldrb	r2, [r2, #7]
+ 800160c:	2101      	movs	r1, #1
+ 800160e:	4610      	mov	r0, r2
+ 8001610:	4798      	blx	r3
 	dev->hal->gpio_write(dev->im_ports[BN008X_WAKE_PIN], 1);
- 8001618:	687b      	ldr	r3, [r7, #4]
- 800161a:	681b      	ldr	r3, [r3, #0]
- 800161c:	689b      	ldr	r3, [r3, #8]
- 800161e:	687a      	ldr	r2, [r7, #4]
- 8001620:	7952      	ldrb	r2, [r2, #5]
- 8001622:	2101      	movs	r1, #1
- 8001624:	4610      	mov	r0, r2
- 8001626:	4798      	blx	r3
+ 8001612:	687b      	ldr	r3, [r7, #4]
+ 8001614:	681b      	ldr	r3, [r3, #0]
+ 8001616:	689b      	ldr	r3, [r3, #8]
+ 8001618:	687a      	ldr	r2, [r7, #4]
+ 800161a:	7952      	ldrb	r2, [r2, #5]
+ 800161c:	2101      	movs	r1, #1
+ 800161e:	4610      	mov	r0, r2
+ 8001620:	4798      	blx	r3
 	return BN008X_OK;
- 8001628:	2300      	movs	r3, #0
+ 8001622:	2300      	movs	r3, #0
 }
- 800162a:	4618      	mov	r0, r3
- 800162c:	3708      	adds	r7, #8
- 800162e:	46bd      	mov	sp, r7
- 8001630:	bd80      	pop	{r7, pc}
+ 8001624:	4618      	mov	r0, r3
+ 8001626:	3708      	adds	r7, #8
+ 8001628:	46bd      	mov	sp, r7
+ 800162a:	bd80      	pop	{r7, pc}
 
-08001632 <bn008x_reset>:
+0800162c <bn008x_reset>:
 
 bn008x_status_t bn008x_reset(bn008x_t *dev) {
- 8001632:	b580      	push	{r7, lr}
- 8001634:	b084      	sub	sp, #16
- 8001636:	af00      	add	r7, sp, #0
- 8001638:	6078      	str	r0, [r7, #4]
+ 800162c:	b580      	push	{r7, lr}
+ 800162e:	b084      	sub	sp, #16
+ 8001630:	af00      	add	r7, sp, #0
+ 8001632:	6078      	str	r0, [r7, #4]
     if (!dev || !dev->hal) {
+ 8001634:	687b      	ldr	r3, [r7, #4]
+ 8001636:	2b00      	cmp	r3, #0
+ 8001638:	d003      	beq.n	8001642 <bn008x_reset+0x16>
  800163a:	687b      	ldr	r3, [r7, #4]
- 800163c:	2b00      	cmp	r3, #0
- 800163e:	d003      	beq.n	8001648 <bn008x_reset+0x16>
- 8001640:	687b      	ldr	r3, [r7, #4]
- 8001642:	681b      	ldr	r3, [r3, #0]
- 8001644:	2b00      	cmp	r3, #0
- 8001646:	d101      	bne.n	800164c <bn008x_reset+0x1a>
+ 800163c:	681b      	ldr	r3, [r3, #0]
+ 800163e:	2b00      	cmp	r3, #0
+ 8001640:	d101      	bne.n	8001646 <bn008x_reset+0x1a>
         return BN008X_ERROR_INVALID_PARAM;
- 8001648:	2303      	movs	r3, #3
- 800164a:	e012      	b.n	8001672 <bn008x_reset+0x40>
+ 8001642:	2303      	movs	r3, #3
+ 8001644:	e012      	b.n	800166c <bn008x_reset+0x40>
     }
     
     bn008x_status_t status;
     
     // Пытаемся сделать обычный ресет
     uint8_t exec_cmd[1] = {BN008X_EXEC_CMD_RESET};  
- 800164c:	2301      	movs	r3, #1
- 800164e:	733b      	strb	r3, [r7, #12]
+ 8001646:	2301      	movs	r3, #1
+ 8001648:	733b      	strb	r3, [r7, #12]
     status = send_shtp_packet(dev, BN008X_CHANNEL_EXECUTABLE, exec_cmd, 1);
- 8001650:	f107 020c 	add.w	r2, r7, #12
- 8001654:	2301      	movs	r3, #1
- 8001656:	2101      	movs	r1, #1
- 8001658:	6878      	ldr	r0, [r7, #4]
- 800165a:	f7ff fcc8 	bl	8000fee <send_shtp_packet>
- 800165e:	4603      	mov	r3, r0
- 8001660:	73fb      	strb	r3, [r7, #15]
+ 800164a:	f107 020c 	add.w	r2, r7, #12
+ 800164e:	2301      	movs	r3, #1
+ 8001650:	2101      	movs	r1, #1
+ 8001652:	6878      	ldr	r0, [r7, #4]
+ 8001654:	f7ff fccb 	bl	8000fee <send_shtp_packet>
+ 8001658:	4603      	mov	r3, r0
+ 800165a:	73fb      	strb	r3, [r7, #15]
     
-    // Сбрасывем флаг (опционально)
-    //dev->initialized = 0;
-    memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));  // Сбрасываем счётчик
-    */
     memset(&dev->tx_seq, 0, sizeof(dev->tx_seq));
- 8001662:	687b      	ldr	r3, [r7, #4]
- 8001664:	3319      	adds	r3, #25
- 8001666:	2206      	movs	r2, #6
- 8001668:	2100      	movs	r1, #0
- 800166a:	4618      	mov	r0, r3
- 800166c:	f008 fbe4 	bl	8009e38 <memset>
+ 800165c:	687b      	ldr	r3, [r7, #4]
+ 800165e:	3319      	adds	r3, #25
+ 8001660:	2206      	movs	r2, #6
+ 8001662:	2100      	movs	r1, #0
+ 8001664:	4618      	mov	r0, r3
+ 8001666:	f008 fbe7 	bl	8009e38 <memset>
     return status;
- 8001670:	7bfb      	ldrb	r3, [r7, #15]
+ 800166a:	7bfb      	ldrb	r3, [r7, #15]
 }
- 8001672:	4618      	mov	r0, r3
- 8001674:	3710      	adds	r7, #16
- 8001676:	46bd      	mov	sp, r7
- 8001678:	bd80      	pop	{r7, pc}
+ 800166c:	4618      	mov	r0, r3
+ 800166e:	3710      	adds	r7, #16
+ 8001670:	46bd      	mov	sp, r7
+ 8001672:	bd80      	pop	{r7, pc}
 
-0800167a <bn008x_hardreset>:
+08001674 <bn008x_hardreset>:
 
 bn008x_status_t bn008x_hardreset(bn008x_t *dev){
- 800167a:	b580      	push	{r7, lr}
- 800167c:	b084      	sub	sp, #16
- 800167e:	af00      	add	r7, sp, #0
- 8001680:	6078      	str	r0, [r7, #4]
+ 8001674:	b580      	push	{r7, lr}
+ 8001676:	b084      	sub	sp, #16
+ 8001678:	af00      	add	r7, sp, #0
+ 800167a:	6078      	str	r0, [r7, #4]
 		if (!dev || !dev->hal) {
+ 800167c:	687b      	ldr	r3, [r7, #4]
+ 800167e:	2b00      	cmp	r3, #0
+ 8001680:	d003      	beq.n	800168a <bn008x_hardreset+0x16>
  8001682:	687b      	ldr	r3, [r7, #4]
- 8001684:	2b00      	cmp	r3, #0
- 8001686:	d003      	beq.n	8001690 <bn008x_hardreset+0x16>
- 8001688:	687b      	ldr	r3, [r7, #4]
- 800168a:	681b      	ldr	r3, [r3, #0]
- 800168c:	2b00      	cmp	r3, #0
- 800168e:	d101      	bne.n	8001694 <bn008x_hardreset+0x1a>
+ 8001684:	681b      	ldr	r3, [r3, #0]
+ 8001686:	2b00      	cmp	r3, #0
+ 8001688:	d101      	bne.n	800168e <bn008x_hardreset+0x1a>
 	        return BN008X_ERROR_INVALID_PARAM;
- 8001690:	2303      	movs	r3, #3
- 8001692:	e031      	b.n	80016f8 <bn008x_hardreset+0x7e>
+ 800168a:	2303      	movs	r3, #3
+ 800168c:	e033      	b.n	80016f6 <bn008x_hardreset+0x82>
 	    }
 	  uint32_t start_ms;
 
 	  bn008x_SetProtocolSPI(dev);
- 8001694:	6878      	ldr	r0, [r7, #4]
- 8001696:	f7ff ffaa 	bl	80015ee <bn008x_SetProtocolSPI>
+ 800168e:	6878      	ldr	r0, [r7, #4]
+ 8001690:	f7ff ffaa 	bl	80015e8 <bn008x_SetProtocolSPI>
 
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_RESET);
- 800169a:	687b      	ldr	r3, [r7, #4]
- 800169c:	681b      	ldr	r3, [r3, #0]
- 800169e:	689b      	ldr	r3, [r3, #8]
- 80016a0:	687a      	ldr	r2, [r7, #4]
- 80016a2:	7912      	ldrb	r2, [r2, #4]
- 80016a4:	2100      	movs	r1, #0
- 80016a6:	4610      	mov	r0, r2
- 80016a8:	4798      	blx	r3
-	  HAL_Delay(BN008X_RESET_PULSE_DELAY_MS);
+ 8001694:	687b      	ldr	r3, [r7, #4]
+ 8001696:	681b      	ldr	r3, [r3, #0]
+ 8001698:	689b      	ldr	r3, [r3, #8]
+ 800169a:	687a      	ldr	r2, [r7, #4]
+ 800169c:	7912      	ldrb	r2, [r2, #4]
+ 800169e:	2100      	movs	r1, #0
+ 80016a0:	4610      	mov	r0, r2
+ 80016a2:	4798      	blx	r3
+	  dev->hal->delay_ms(BN008X_RESET_PULSE_DELAY_MS);
+ 80016a4:	687b      	ldr	r3, [r7, #4]
+ 80016a6:	681b      	ldr	r3, [r3, #0]
+ 80016a8:	691b      	ldr	r3, [r3, #16]
  80016aa:	2002      	movs	r0, #2
- 80016ac:	f000 f920 	bl	80018f0 <HAL_Delay>
+ 80016ac:	4798      	blx	r3
 	  dev->hal->gpio_write(dev->im_ports[BN008X_RESET_PIN],GPIO_PIN_SET);
- 80016b0:	687b      	ldr	r3, [r7, #4]
- 80016b2:	681b      	ldr	r3, [r3, #0]
- 80016b4:	689b      	ldr	r3, [r3, #8]
- 80016b6:	687a      	ldr	r2, [r7, #4]
- 80016b8:	7912      	ldrb	r2, [r2, #4]
- 80016ba:	2101      	movs	r1, #1
- 80016bc:	4610      	mov	r0, r2
- 80016be:	4798      	blx	r3
+ 80016ae:	687b      	ldr	r3, [r7, #4]
+ 80016b0:	681b      	ldr	r3, [r3, #0]
+ 80016b2:	689b      	ldr	r3, [r3, #8]
+ 80016b4:	687a      	ldr	r2, [r7, #4]
+ 80016b6:	7912      	ldrb	r2, [r2, #4]
+ 80016b8:	2101      	movs	r1, #1
+ 80016ba:	4610      	mov	r0, r2
+ 80016bc:	4798      	blx	r3
 
 	  start_ms = dev->hal->get_tick_ms();
- 80016c0:	687b      	ldr	r3, [r7, #4]
- 80016c2:	681b      	ldr	r3, [r3, #0]
- 80016c4:	695b      	ldr	r3, [r3, #20]
- 80016c6:	4798      	blx	r3
- 80016c8:	60f8      	str	r0, [r7, #12]
+ 80016be:	687b      	ldr	r3, [r7, #4]
+ 80016c0:	681b      	ldr	r3, [r3, #0]
+ 80016c2:	695b      	ldr	r3, [r3, #20]
+ 80016c4:	4798      	blx	r3
+ 80016c6:	60f8      	str	r0, [r7, #12]
 	  while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET)
- 80016ca:	e00a      	b.n	80016e2 <bn008x_hardreset+0x68>
+ 80016c8:	e00a      	b.n	80016e0 <bn008x_hardreset+0x6c>
 	  {
 		if ((dev->hal->get_tick_ms() - start_ms) > BN008X_RESET_DELAY_MS)
- 80016cc:	687b      	ldr	r3, [r7, #4]
- 80016ce:	681b      	ldr	r3, [r3, #0]
- 80016d0:	695b      	ldr	r3, [r3, #20]
- 80016d2:	4798      	blx	r3
- 80016d4:	4602      	mov	r2, r0
- 80016d6:	68fb      	ldr	r3, [r7, #12]
- 80016d8:	1ad3      	subs	r3, r2, r3
- 80016da:	2bc8      	cmp	r3, #200	@ 0xc8
- 80016dc:	d901      	bls.n	80016e2 <bn008x_hardreset+0x68>
+ 80016ca:	687b      	ldr	r3, [r7, #4]
+ 80016cc:	681b      	ldr	r3, [r3, #0]
+ 80016ce:	695b      	ldr	r3, [r3, #20]
+ 80016d0:	4798      	blx	r3
+ 80016d2:	4602      	mov	r2, r0
+ 80016d4:	68fb      	ldr	r3, [r7, #12]
+ 80016d6:	1ad3      	subs	r3, r2, r3
+ 80016d8:	2bc8      	cmp	r3, #200	@ 0xc8
+ 80016da:	d901      	bls.n	80016e0 <bn008x_hardreset+0x6c>
 		{
 		  return BN008X_ERROR_TIMEOUT;
- 80016de:	2302      	movs	r3, #2
- 80016e0:	e00a      	b.n	80016f8 <bn008x_hardreset+0x7e>
+ 80016dc:	2302      	movs	r3, #2
+ 80016de:	e00a      	b.n	80016f6 <bn008x_hardreset+0x82>
 	  while (dev->hal->gpio_read(dev->im_ports[BN008X_INT_PIN])==GPIO_PIN_SET)
- 80016e2:	687b      	ldr	r3, [r7, #4]
- 80016e4:	681b      	ldr	r3, [r3, #0]
- 80016e6:	68db      	ldr	r3, [r3, #12]
- 80016e8:	687a      	ldr	r2, [r7, #4]
- 80016ea:	7992      	ldrb	r2, [r2, #6]
- 80016ec:	4610      	mov	r0, r2
- 80016ee:	4798      	blx	r3
- 80016f0:	4603      	mov	r3, r0
- 80016f2:	2b01      	cmp	r3, #1
- 80016f4:	d0ea      	beq.n	80016cc <bn008x_hardreset+0x52>
+ 80016e0:	687b      	ldr	r3, [r7, #4]
+ 80016e2:	681b      	ldr	r3, [r3, #0]
+ 80016e4:	68db      	ldr	r3, [r3, #12]
+ 80016e6:	687a      	ldr	r2, [r7, #4]
+ 80016e8:	7992      	ldrb	r2, [r2, #6]
+ 80016ea:	4610      	mov	r0, r2
+ 80016ec:	4798      	blx	r3
+ 80016ee:	4603      	mov	r3, r0
+ 80016f0:	2b01      	cmp	r3, #1
+ 80016f2:	d0ea      	beq.n	80016ca <bn008x_hardreset+0x56>
 		}
 	  }
 
-	  /* Keep PS0/WAKE high through first H_INTN assertion to lock SPI mode. */
 	  return BN008X_OK;
- 80016f6:	2300      	movs	r3, #0
+ 80016f4:	2300      	movs	r3, #0
 }
- 80016f8:	4618      	mov	r0, r3
- 80016fa:	3710      	adds	r7, #16
- 80016fc:	46bd      	mov	sp, r7
- 80016fe:	bd80      	pop	{r7, pc}
+ 80016f6:	4618      	mov	r0, r3
+ 80016f8:	3710      	adds	r7, #16
+ 80016fa:	46bd      	mov	sp, r7
+ 80016fc:	bd80      	pop	{r7, pc}
 
-08001700 <stm32_spi_transmit>:
+080016fe <stm32_spi_transmit>:
+//здесь в таблицах указывается соответствие между реальным портом и пином и абстрактным, заданный пользователем
 static const uint16_t pin_map[] = {PS1_Pin, WAKE_Pin, RESET_Pin, INT_Pin, CS_PIN_Pin};
 
 static GPIO_TypeDef* const ports[] = {PS1_GPIO_Port, WAKE_GPIO_Port, RESET_GPIO_Port, INT_GPIO_Port, CS_PIN_GPIO_Port};
-// ===== Реализация функций =====
 
 static int32_t stm32_spi_transmit(SPI_HandleTypeDef* spi, uint8_t *tx_data, uint16_t len, uint32_t timeout) {
- 8001700:	b580      	push	{r7, lr}
- 8001702:	b086      	sub	sp, #24
- 8001704:	af00      	add	r7, sp, #0
- 8001706:	60f8      	str	r0, [r7, #12]
- 8001708:	60b9      	str	r1, [r7, #8]
- 800170a:	603b      	str	r3, [r7, #0]
- 800170c:	4613      	mov	r3, r2
- 800170e:	80fb      	strh	r3, [r7, #6]
+ 80016fe:	b580      	push	{r7, lr}
+ 8001700:	b086      	sub	sp, #24
+ 8001702:	af00      	add	r7, sp, #0
+ 8001704:	60f8      	str	r0, [r7, #12]
+ 8001706:	60b9      	str	r1, [r7, #8]
+ 8001708:	603b      	str	r3, [r7, #0]
+ 800170a:	4613      	mov	r3, r2
+ 800170c:	80fb      	strh	r3, [r7, #6]
     HAL_StatusTypeDef status = HAL_SPI_Transmit(spi, tx_data, len, timeout);
- 8001710:	88fa      	ldrh	r2, [r7, #6]
- 8001712:	683b      	ldr	r3, [r7, #0]
- 8001714:	68b9      	ldr	r1, [r7, #8]
- 8001716:	68f8      	ldr	r0, [r7, #12]
- 8001718:	f004 fa79 	bl	8005c0e <HAL_SPI_Transmit>
- 800171c:	4603      	mov	r3, r0
- 800171e:	75fb      	strb	r3, [r7, #23]
+ 800170e:	88fa      	ldrh	r2, [r7, #6]
+ 8001710:	683b      	ldr	r3, [r7, #0]
+ 8001712:	68b9      	ldr	r1, [r7, #8]
+ 8001714:	68f8      	ldr	r0, [r7, #12]
+ 8001716:	f004 fa7a 	bl	8005c0e <HAL_SPI_Transmit>
+ 800171a:	4603      	mov	r3, r0
+ 800171c:	75fb      	strb	r3, [r7, #23]
     return (status == HAL_OK) ? 0 : -1;
- 8001720:	7dfb      	ldrb	r3, [r7, #23]
- 8001722:	2b00      	cmp	r3, #0
- 8001724:	d101      	bne.n	800172a <stm32_spi_transmit+0x2a>
- 8001726:	2300      	movs	r3, #0
- 8001728:	e001      	b.n	800172e <stm32_spi_transmit+0x2e>
- 800172a:	f04f 33ff 	mov.w	r3, #4294967295
+ 800171e:	7dfb      	ldrb	r3, [r7, #23]
+ 8001720:	2b00      	cmp	r3, #0
+ 8001722:	d101      	bne.n	8001728 <stm32_spi_transmit+0x2a>
+ 8001724:	2300      	movs	r3, #0
+ 8001726:	e001      	b.n	800172c <stm32_spi_transmit+0x2e>
+ 8001728:	f04f 33ff 	mov.w	r3, #4294967295
 }
- 800172e:	4618      	mov	r0, r3
- 8001730:	3718      	adds	r7, #24
- 8001732:	46bd      	mov	sp, r7
- 8001734:	bd80      	pop	{r7, pc}
+ 800172c:	4618      	mov	r0, r3
+ 800172e:	3718      	adds	r7, #24
+ 8001730:	46bd      	mov	sp, r7
+ 8001732:	bd80      	pop	{r7, pc}
 
-08001736 <stm32_spi_receive>:
+08001734 <stm32_spi_receive>:
 
 static int32_t stm32_spi_receive(SPI_HandleTypeDef* spi, uint8_t *rx_data, uint16_t len, uint32_t timeout) {
- 8001736:	b580      	push	{r7, lr}
- 8001738:	b086      	sub	sp, #24
- 800173a:	af00      	add	r7, sp, #0
- 800173c:	60f8      	str	r0, [r7, #12]
- 800173e:	60b9      	str	r1, [r7, #8]
- 8001740:	603b      	str	r3, [r7, #0]
- 8001742:	4613      	mov	r3, r2
- 8001744:	80fb      	strh	r3, [r7, #6]
+ 8001734:	b580      	push	{r7, lr}
+ 8001736:	b086      	sub	sp, #24
+ 8001738:	af00      	add	r7, sp, #0
+ 800173a:	60f8      	str	r0, [r7, #12]
+ 800173c:	60b9      	str	r1, [r7, #8]
+ 800173e:	603b      	str	r3, [r7, #0]
+ 8001740:	4613      	mov	r3, r2
+ 8001742:	80fb      	strh	r3, [r7, #6]
     HAL_StatusTypeDef status = HAL_SPI_Receive(spi, rx_data, len, timeout);
- 8001746:	88fa      	ldrh	r2, [r7, #6]
- 8001748:	683b      	ldr	r3, [r7, #0]
- 800174a:	68b9      	ldr	r1, [r7, #8]
- 800174c:	68f8      	ldr	r0, [r7, #12]
- 800174e:	f004 fba2 	bl	8005e96 <HAL_SPI_Receive>
- 8001752:	4603      	mov	r3, r0
- 8001754:	75fb      	strb	r3, [r7, #23]
+ 8001744:	88fa      	ldrh	r2, [r7, #6]
+ 8001746:	683b      	ldr	r3, [r7, #0]
+ 8001748:	68b9      	ldr	r1, [r7, #8]
+ 800174a:	68f8      	ldr	r0, [r7, #12]
+ 800174c:	f004 fba3 	bl	8005e96 <HAL_SPI_Receive>
+ 8001750:	4603      	mov	r3, r0
+ 8001752:	75fb      	strb	r3, [r7, #23]
     return (status == HAL_OK) ? 0 : -1;
- 8001756:	7dfb      	ldrb	r3, [r7, #23]
- 8001758:	2b00      	cmp	r3, #0
- 800175a:	d101      	bne.n	8001760 <stm32_spi_receive+0x2a>
- 800175c:	2300      	movs	r3, #0
- 800175e:	e001      	b.n	8001764 <stm32_spi_receive+0x2e>
- 8001760:	f04f 33ff 	mov.w	r3, #4294967295
+ 8001754:	7dfb      	ldrb	r3, [r7, #23]
+ 8001756:	2b00      	cmp	r3, #0
+ 8001758:	d101      	bne.n	800175e <stm32_spi_receive+0x2a>
+ 800175a:	2300      	movs	r3, #0
+ 800175c:	e001      	b.n	8001762 <stm32_spi_receive+0x2e>
+ 800175e:	f04f 33ff 	mov.w	r3, #4294967295
 }
- 8001764:	4618      	mov	r0, r3
- 8001766:	3718      	adds	r7, #24
- 8001768:	46bd      	mov	sp, r7
- 800176a:	bd80      	pop	{r7, pc}
+ 8001762:	4618      	mov	r0, r3
+ 8001764:	3718      	adds	r7, #24
+ 8001766:	46bd      	mov	sp, r7
+ 8001768:	bd80      	pop	{r7, pc}
+	...
 
 0800176c <stm32_gpio_write>:
 
@@ -3639,11 +3637,11 @@ static uint32_t stm32_get_tick_ms(void) {
  8001810:	4618      	mov	r0, r3
  8001812:	bd80      	pop	{r7, pc}
 
-08001814 <bn008x_hal_init_stm32>:
+08001814 <bn008x_hal_init>:
 
 // Инициализация HAL структуры
 
-void bn008x_hal_init_stm32(bn008x_hal_t *hal) {
+void bn008x_hal_init(bn008x_hal_t *hal) {
  8001814:	b480      	push	{r7}
  8001816:	b083      	sub	sp, #12
  8001818:	af00      	add	r7, sp, #0
@@ -3651,33 +3649,33 @@ void bn008x_hal_init_stm32(bn008x_hal_t *hal) {
     if (hal == NULL) return;
  800181c:	687b      	ldr	r3, [r7, #4]
  800181e:	2b00      	cmp	r3, #0
- 8001820:	d012      	beq.n	8001848 <bn008x_hal_init_stm32+0x34>
+ 8001820:	d012      	beq.n	8001848 <bn008x_hal_init+0x34>
     
     hal->spi_transmit = stm32_spi_transmit;
  8001822:	687b      	ldr	r3, [r7, #4]
- 8001824:	4a0b      	ldr	r2, [pc, #44]	@ (8001854 <bn008x_hal_init_stm32+0x40>)
+ 8001824:	4a0b      	ldr	r2, [pc, #44]	@ (8001854 <bn008x_hal_init+0x40>)
  8001826:	601a      	str	r2, [r3, #0]
     hal->spi_receive = stm32_spi_receive;
  8001828:	687b      	ldr	r3, [r7, #4]
- 800182a:	4a0b      	ldr	r2, [pc, #44]	@ (8001858 <bn008x_hal_init_stm32+0x44>)
+ 800182a:	4a0b      	ldr	r2, [pc, #44]	@ (8001858 <bn008x_hal_init+0x44>)
  800182c:	605a      	str	r2, [r3, #4]
     hal->gpio_write = stm32_gpio_write;
  800182e:	687b      	ldr	r3, [r7, #4]
- 8001830:	4a0a      	ldr	r2, [pc, #40]	@ (800185c <bn008x_hal_init_stm32+0x48>)
+ 8001830:	4a0a      	ldr	r2, [pc, #40]	@ (800185c <bn008x_hal_init+0x48>)
  8001832:	609a      	str	r2, [r3, #8]
     hal->gpio_read = stm32_gpio_read;
  8001834:	687b      	ldr	r3, [r7, #4]
- 8001836:	4a0a      	ldr	r2, [pc, #40]	@ (8001860 <bn008x_hal_init_stm32+0x4c>)
+ 8001836:	4a0a      	ldr	r2, [pc, #40]	@ (8001860 <bn008x_hal_init+0x4c>)
  8001838:	60da      	str	r2, [r3, #12]
     hal->delay_ms = stm32_delay_ms;
  800183a:	687b      	ldr	r3, [r7, #4]
- 800183c:	4a09      	ldr	r2, [pc, #36]	@ (8001864 <bn008x_hal_init_stm32+0x50>)
+ 800183c:	4a09      	ldr	r2, [pc, #36]	@ (8001864 <bn008x_hal_init+0x50>)
  800183e:	611a      	str	r2, [r3, #16]
     hal->get_tick_ms = stm32_get_tick_ms;
  8001840:	687b      	ldr	r3, [r7, #4]
- 8001842:	4a09      	ldr	r2, [pc, #36]	@ (8001868 <bn008x_hal_init_stm32+0x54>)
+ 8001842:	4a09      	ldr	r2, [pc, #36]	@ (8001868 <bn008x_hal_init+0x54>)
  8001844:	615a      	str	r2, [r3, #20]
- 8001846:	e000      	b.n	800184a <bn008x_hal_init_stm32+0x36>
+ 8001846:	e000      	b.n	800184a <bn008x_hal_init+0x36>
     if (hal == NULL) return;
  8001848:	bf00      	nop
 }
@@ -3685,8 +3683,8 @@ void bn008x_hal_init_stm32(bn008x_hal_t *hal) {
  800184c:	46bd      	mov	sp, r7
  800184e:	f85d 7b04 	ldr.w	r7, [sp], #4
  8001852:	4770      	bx	lr
- 8001854:	08001701 	.word	0x08001701
- 8001858:	08001737 	.word	0x08001737
+ 8001854:	080016ff 	.word	0x080016ff
+ 8001858:	08001735 	.word	0x08001735
  800185c:	0800176d 	.word	0x0800176d
  8001860:	080017b1 	.word	0x080017b1
  8001864:	080017f1 	.word	0x080017f1
